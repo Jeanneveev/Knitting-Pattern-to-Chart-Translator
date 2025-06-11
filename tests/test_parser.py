@@ -19,4 +19,22 @@ def test_can_parse():
 
 def test_can_parse_single_stitch():
     parser = Parser("k2")
-    assert parser.start() == ["k", "k"]
+    assert parser.start() == { 1: ["k", "k"] }
+
+def test_can_parse_single_stitch_sequence():
+    parser = Parser("k2, p2")
+    assert parser.start() == { 1: ["k", "k", "p", "p"] }
+
+def test_can_parse_single_row():
+    parser = Parser("row 1: k2, p2")
+    assert parser.start() == { 1: ["k", "k", "p", "p"] }
+
+def test_can_parse_multiple_rows():
+    parser = Parser("row 1: k2, p2\n"
+                    "row 2: p2, k2\n"
+                    "row 3: k2, p2")
+    assert parser.start() == {
+        1 : ["k", "k", "p", "p"],
+        2 : ["p", "p", "k", "k"],
+        3 : ["k", "k", "p", "p"]
+    }
