@@ -1,6 +1,7 @@
 import re
 import pytest
-from parser.parser import Parser
+from src.parser.parser import Parser
+from src.models.model import Stitch, Row, Pattern
 
 def test_can_create_parser():
     parser = Parser("k")
@@ -19,4 +20,25 @@ def test_can_parse():
 
 def test_can_parse_single_stitch():
     parser = Parser("k2")
-    assert parser.start() == ["k", "k"]
+    expected_result_row = Row(1, [Stitch("k"), Stitch("k")])
+    assert parser.start() == Pattern([expected_result_row])
+
+def test_can_parse_single_stitch_sequence():
+    parser = Parser("k2, p2")
+    expected_result_row = Row(1, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")])
+    assert parser.start() == Pattern([expected_result_row])
+
+def test_can_parse_single_row():
+    parser = Parser("row 1: k, p2")
+    expected_result_row = Row(1, [Stitch("k"), Stitch("p"), Stitch("p")])
+    assert parser.start() == Pattern([expected_result_row])
+
+def test_can_parse_multiple_rows():
+    parser = Parser("row 1: k2, p2\n"
+                    "row 2: p2, k2\n"
+                    "row 3: k2, p2")
+    assert parser.start() == Pattern([
+        Row(1, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")]),
+        Row(2, [Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")]),
+        Row(3, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")])
+    ])

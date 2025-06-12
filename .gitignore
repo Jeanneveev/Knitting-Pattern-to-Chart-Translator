@@ -2,4 +2,4 @@
 **/.pytest_cache/
 
 .venv/
-parser/parser2.py
+src/parser/parser2.py

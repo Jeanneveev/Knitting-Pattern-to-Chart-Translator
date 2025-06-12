@@ -15,6 +15,7 @@ STITCH_TYPE     = "k" | "p" ;
 """
 
 import re
+from src.models.model import Stitch, Row, Pattern
 
 class ParserError(Exception): 
     """Exception raised for errors during the parsing process"""
@@ -35,20 +36,8 @@ class Parser:
 
     def tokenize(self, input:str)->list[str]:
         """Tokenize the input into a list of strings"""
-        tokens = []
-
-        for part in input.split(","):
-            part = part.strip()
-            stitch_match = re.fullmatch(r'([a-z]+)(\d+)', part)
-            single_stitch_match = re.fullmatch(r'([a-z]+)', part)
-            if stitch_match:    #split the stitch name and count into their own tokens
-                stitch_type, count = stitch_match.groups()
-                tokens.extend([stitch_type, count])
-            elif single_stitch_match:   #if it's just one stitch w/ no count
-                tokens.append(single_stitch_match)
-            else:
-                raise ParserError(f"Invalid stitch syntax: {part}")
-            
+        pattern = r"[a-z]+|\d+|,|:|\n"
+        tokens = re.findall(pattern, input)
         tokens.append(self.EOI)
         return tokens
 
@@ -79,21 +68,23 @@ class Parser:
 
     # start = pattern , ? end of input ? ;
     def start(self):
-        self.pattern()
+        result = self.pattern()
         self.expect([self.EOI])
+        return result
 
     # pattern = stitch_sequence | [ row , { ? newline ? , row } ] ;
-    def pattern(self):
+    def pattern(self) -> Pattern:
         if self._curr_token in ["k", "p"]:
-            self.stitch_sequence()
-        else:
-            self.row()
-            while self._curr_token == "\n":
-                self.advance()
-                self.row()
+            return Pattern([Row(1, self.stitch_sequence())])
+        
+        result = [self.row()]
+        while self._curr_token == "\n":
+            self.advance()
+            result.append(self.row())
+        return Pattern(result)
     
     # row = "row" , ? integer ? , ":" , stitch_sequence ;
-    def row(self):
+    def row(self) -> Row:
         self.expect(["row"])
         if not self._curr_token.isdigit():
             wrong_token = f'"{self._curr_token}"' 
@@ -101,31 +92,37 @@ class Parser:
                     f'But was expecting an integer')
             raise ParserError(message)
         # else: ? integer ?
+        row_num = int(self._curr_token)
         self.advance()  # move onto the next token
         self.expect([":"])
-        self.stitch_sequence()
+        return Row(row_num, self.stitch_sequence())
     
     # stitch_sequence = stitch, {"," , stitch } ;
-    def stitch_sequence(self):
-        self.stitch()
+    def stitch_sequence(self) -> list[Stitch]:
+        result = []
+        result.extend(self.stitch())
+        # print("appended first stitch in sequence")
         while self._curr_token == ",":
+            # print("appending another stitch in sequence")
             self.advance()
-            self.stitch()
+            result.extend(self.stitch())
+        return result
 
     # stitch = STITCH_TYPE , ? integer ? ;
-    def stitch(self):
-        self.stitch_type()
+    def stitch(self) -> list[Stitch]:
+        result = self.stitch_type()
         if not self._curr_token.isdigit():
-            wrong_token = f'"{self._curr_token}"' 
-            message = (f'Found the token: {wrong_token}\n'
-                    f'But was expecting an integer')
-            raise ParserError(message)
+            return [result]
         multiplier = int(self._curr_token)
         self.advance()
+        # print(f"stitch parsed, next token is {self._curr_token}")
+        return [result] * multiplier
         
     # STITCH_TYPE = "k" | "p" ;
-    def stitch_type(self):
+    def stitch_type(self) -> Stitch:
+        current = self._curr_token
         self.expect(["k", "p"])
+        return Stitch(current)
     
 
 if __name__ == "__main__": 
