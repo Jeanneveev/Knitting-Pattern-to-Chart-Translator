@@ -69,9 +69,7 @@ class Parser:
     # start = pattern , ? end of input ? ;
     def start(self):
         result = self.pattern()
-        result = self.pattern()
         self.expect([self.EOI])
-        return result
         return result
 
     # pattern = stitch_sequence | [ row , { ? newline ? , row } ] ;
@@ -95,7 +93,6 @@ class Parser:
             raise ParserError(message)
         # else: ? integer ?
         row_num = int(self._curr_token)
-        row_num = int(self._curr_token)
         self.advance()  # move onto the next token
         self.expect([":"])
         return Row(row_num, self.stitch_sequence())
@@ -110,14 +107,11 @@ class Parser:
             self.advance()
             result.extend(self.stitch())
         return result
-            result.extend(self.stitch())
-        return result
 
     # stitch = STITCH_TYPE , ? integer ? ;
     def stitch(self) -> list[Stitch]:
         result = self.stitch_type()
         if not self._curr_token.isdigit():
-            return [result]
             return [result]
         multiplier = int(self._curr_token)
         self.advance()
