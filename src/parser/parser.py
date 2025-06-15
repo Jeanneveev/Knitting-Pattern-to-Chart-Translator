@@ -30,7 +30,7 @@ class Parser:
         """Initializes the parser instance and gets the first token
         of the input string"""
         self._tokens = iter(self.tokenize(input))
-        print(f"tokens are: {self.tokenize(input)}")
+        # print(f"tokens are: {self.tokenize(input)}")
         self._curr_token = None
         self.advance()  # start iteration
 
