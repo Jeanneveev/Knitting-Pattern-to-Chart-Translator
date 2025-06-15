@@ -46,6 +46,8 @@ class Row:
 @dataclass(frozen=True)  
 class Pattern:
     rows:list[Row]
+    caston:int = None
+
 
     @property
     def last_row(self) -> Row:

@@ -4,7 +4,8 @@ Grammar
 -----------
 
 start           = pattern , ? end of input ? ;
-pattern         = stitch_sequence | [ row , { ? newline ? , row } ] ;
+pattern         = [cast_on] , ( stitch_sequence | [ row , { ? newline ? , row } ] ) ;
+cast_on         = "cast on", ? integer ? , "stitches"
 row             = "row" , ? integer ? ":" , stitch_sequence ;
 stitch_sequence = stitch, {"," , stitch } ;
 stitch          = STITCH_TYPE , ? integer ? ;
@@ -67,21 +68,42 @@ class Parser:
     ## PARSING METHODS
 
     # start = pattern , ? end of input ? ;
-    def start(self):
+    def start(self) -> Pattern:
         result = self.pattern()
         self.expect([self.EOI])
         return result
 
-    # pattern = stitch_sequence | [ row , { ? newline ? , row } ] ;
+    # pattern = [cast_on] , ( stitch_sequence | [ row , { ? newline ? , row } ] ) ;
     def pattern(self) -> Pattern:
+        caston = None
+
+        if self._curr_token == "cast":
+            caston = self.cast_on()
+            self.advance() #skip the newline token
+
         if self._curr_token in ["k", "p"]:
-            return Pattern([Row(1, self.stitch_sequence())])
+            return Pattern(caston=caston, rows=[Row(1, self.stitch_sequence())])
         
         result = [self.row()]
         while self._curr_token == "\n":
             self.advance()
             result.append(self.row())
-        return Pattern(result)
+        return Pattern(caston=caston, rows=result)
+    
+    # cast_on = "cast on", ? integer ? , "stitches"
+    def cast_on(self):
+        self.expect(["cast"])
+        self.expect(["on"])
+        if not self._curr_token.isdigit():
+            wrong_token = f'"{self._curr_token}"' 
+            message = (f'Found the token: {wrong_token}\n'
+                    f'But was expecting an integer')
+            raise ParserError(message)
+        # else: ? integer ?
+        caston_num = int(self._curr_token)
+        self.advance()  # move onto the next token
+        self.expect(["stitches"])
+        return caston_num
     
     # row = "row" , ? integer ? , ":" , stitch_sequence ;
     def row(self) -> Row:

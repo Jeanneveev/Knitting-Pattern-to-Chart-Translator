@@ -42,3 +42,25 @@ def test_can_parse_multiple_rows():
         Row(2, [Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")]),
         Row(3, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")])
     ])
+
+def test_can_parse_caston_row():
+    parser = Parser("cast on 4 stitches\n"
+                    "k2, p2")
+    expected_result_row = Row(1, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")])
+    assert parser.start() == Pattern([expected_result_row], 4)
+
+def test_can_parse_caston_and_multiple_rows():
+    parser = Parser("cast on 4 stitches\n"
+                    "row 1: k2, p2\n"
+                    "row 2: p2, k2\n"
+                    "row 3: k2, p2")
+    expected_rows = [
+        Row(1, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")]),
+        Row(2, [Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")]),
+        Row(3, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")])
+    ]
+    assert parser.start() == Pattern(expected_rows, 4)
+
+def test_can_parse_repeats():
+    parser = Parser("cast on 12 st\n"
+        "k3, *p2, k2; repeat from * to last st, k1")
