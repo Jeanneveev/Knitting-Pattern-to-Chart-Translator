@@ -1,5 +1,5 @@
 import pytest
-from src.models.model import Stitch, Row, Pattern
+from src.models.model import Stitch, Repeat, Row, Pattern
 
 def test_can_create_stitch():
     stitch = Stitch("k")
@@ -28,3 +28,24 @@ def test_can_get_row_by_number():
     row2 = Row(2, [Stitch("p"), Stitch("k"), Stitch("p")])
     pattern = Pattern([row1, row2])
     assert pattern.get_row(2) == Row(2, [Stitch("p"), Stitch("k"), Stitch("p")])
+
+def test_can_unpack_nonspecified_repeat_row_instructions():
+    row = Row(1, [Stitch("k"), Stitch("k"), Stitch("k"),
+                        Repeat(stitches=[Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")], until="end"),
+                        Stitch("k")
+                    ], 12)
+    assert row.stitches == [Stitch("k"), Stitch("k"), Stitch("k"),
+                            Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k"),
+                            Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k"),
+                            Stitch("k")
+                            ]
+
+def test_can_unpack_specified_repeat_row_instructions():
+    row = Row(1, [Repeat(stitches=[Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")], times=3),
+                        Stitch("p"), Stitch("p"),
+                    ], 14)
+    assert row.stitches == [Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k"),
+                            Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k"),
+                            Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k"),
+                            Stitch("p"), Stitch("p")
+                            ]

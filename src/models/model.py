@@ -22,9 +22,44 @@ class Stitch:
         return self.STITCH_MAP[self.abbrev]["ws"]
 
 @dataclass(frozen=True)
+class Repeat:
+    stitches:list[Stitch]
+    until:str = None
+    times:int = None
+
+@dataclass(frozen=True)
 class Row:
     number:int
-    stitches:list[Stitch]
+    instructions:list[Stitch|Repeat]
+    num_stitches:int = None
+
+    @property
+    def stitches(self) -> list[Stitch]:
+        """The row instructions parsed down into a list of individual stitches, if necessary"""
+        if not any(isinstance(item, Repeat) for item in self.instructions):
+            return self.instructions
+        
+        for i in range(len(self.instructions)):
+            if isinstance(self.instructions[i], Repeat):
+                repeat:Repeat = self.instructions[i]
+                if repeat.times is not None:
+                    # replace repeat with expanded list
+                    ## NOTE: You need to replace the slice, otherwise it will insert a list inside the list
+                    self.instructions[i:i+1] = repeat.stitches * repeat.times
+                elif repeat.until == "end":   #assuming there are no repeats after this
+                    # get the number of stitches that aren't the repeat group and divide up the remainder
+                    print("unpacking unspecified repeat")
+                    if self.num_stitches is None:
+                        raise ValueError("Rows including repeats must have a set number of stitches")
+                    repeat_len = len(repeat.stitches)
+                    # print(repeat_len)
+                    non_repeat_len = sum(isinstance(item, Stitch) for item in self.instructions)
+                    # print(non_repeat_len)
+                    total_repeat_len = self.num_stitches - non_repeat_len
+                    num_repeats = int(total_repeat_len / repeat_len)
+                    
+                    self.instructions[i:i+1] = repeat.stitches * num_repeats
+        return self.instructions
 
     def __len__(self) -> int:
         return len(self.stitches)
@@ -47,7 +82,6 @@ class Row:
 class Pattern:
     rows:list[Row]
     caston:int = None
-
 
     @property
     def last_row(self) -> Row:

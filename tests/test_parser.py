@@ -1,7 +1,7 @@
 import re
 import pytest
-from src.parser.parser import Parser
-from src.models.model import Stitch, Row, Pattern
+from src.parser.parser import Parser, ParserError
+from src.models.model import Stitch, Repeat, Row, Pattern
 
 def test_can_create_parser():
     parser = Parser("k")
@@ -46,7 +46,7 @@ def test_can_parse_multiple_rows():
 def test_can_parse_caston_row():
     parser = Parser("cast on 4 stitches\n"
                     "k2, p2")
-    expected_result_row = Row(1, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")])
+    expected_result_row = Row(1, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")], 4)
     assert parser.start() == Pattern([expected_result_row], 4)
 
 def test_can_parse_caston_and_multiple_rows():
@@ -55,12 +55,31 @@ def test_can_parse_caston_and_multiple_rows():
                     "row 2: p2, k2\n"
                     "row 3: k2, p2")
     expected_rows = [
-        Row(1, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")]),
-        Row(2, [Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")]),
-        Row(3, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")])
+        Row(1, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")], 4),
+        Row(2, [Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")], 4),
+        Row(3, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")], 4)
     ]
     assert parser.start() == Pattern(expected_rows, 4)
 
-def test_can_parse_repeats():
+def test_can_parse_non_number_specified_repeats():
     parser = Parser("cast on 12 st\n"
-        "k3, *p2, k2; repeat from * to last st, k1")
+        "k3, *p2, k2*, k1")
+    expected_row = Row(1, [Stitch("k"), Stitch("k"), Stitch("k"),
+                        Repeat(stitches=[Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")], until="end"),
+                        Stitch("k")
+                    ], 12)
+    assert parser.start() == Pattern([expected_row], 12)
+
+def test_can_parse_number_specified_repeats():
+    parser = Parser("cast on 12 st\n"
+        "k3, *p2, k2*; repeat from * to * 2 times, k1")
+    expected_row = Row(1, [Stitch("k"), Stitch("k"), Stitch("k"),
+                        Repeat(stitches=[Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")], times=2),
+                        Stitch("k")
+                    ], 12)
+    assert parser.start() == Pattern([expected_row], 12)
+
+def test_can_only_parse_repeat_if_caston_set():
+    with pytest.raises(ParserError, match="The number of stitches cast-on must be specified in patterns with repeats"):
+        parser = Parser("k3, *p2, k2*, k1")
+        parser.start()
