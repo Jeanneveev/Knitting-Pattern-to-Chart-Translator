@@ -10,24 +10,29 @@ class StitchType(Enum):
 @dataclass(frozen=True)
 class Stitch:
     abbrev: str
-    type: StitchType = StitchType.REGULAR
 
     def __post_init__(self):
         # error checking
         if not isinstance(self.abbrev, str):
             raise TypeError(f"Stitch abbrev must be type str, got type {type(self.abbrev)}")
-        if not isinstance(self.type, StitchType):
-            raise TypeError(f"Stitch type must be type StitchType, got type {type(self.type)}")
     
     # The current dictionary of stitch abbreviations and their names and symbols
     STITCH_BY_ABBREV = {
-        "k": {"name": "knit", "rs": " ", "ws": "-"},
-        "p": {"name": "purl", "rs": "-", "ws": " "},
+        "k": {"name": "knit", "type": "reg", "stitches_consumed": 1, "rs": " ", "ws": "-"},
+        "p": {"name": "purl", "type": "reg", "stitches_consumed": 1, "rs": "-", "ws": " "},
     }
 
     @property
     def name(self) -> str:
         return self.STITCH_BY_ABBREV[self.abbrev]["name"]
+    
+    @property
+    def type(self) -> StitchType:
+        return StitchType(self.STITCH_BY_ABBREV[self.abbrev]["type"])
+    
+    @property
+    def stitches_consumed(self) -> int:
+        return self.STITCH_BY_ABBREV[self.abbrev]["stitches_consumed"]
 
     @property
     def symbol_rs(self) -> str:
@@ -92,65 +97,69 @@ class Row:
         self.number = number
         self.instructions = instructions
 
-    # def get_stitch_count(self, prev_stitch_count:int):
-    #     increases = 0
-    #     decreases = 0
-
-    #     for instruction in self.instructions:
-    #         if isinstance(instruction, Stitch): # if the instruction is a stitch, check if it's regular
-    #             if instruction.type != StitchType.REGULAR:
-    #                 all_reg = False
-    #         elif isinstance(instruction, Repeat): # if the instruction is a repeat, check if its stitches are regular
-    #             for element in instruction.elements:
-    #                 if isinstance(element, Stitch):
-    #                     if element.type != StitchType.REGULAR:
-    #                         all_reg = False
-    #                 elif isinstance(element, Repeat): # if the element is a repeat, check if its stitches are regular
-    #                     if any(stitch_type != StitchType.REGULAR for stitch_type in element.elements):
-    #                         all_reg = False
-
-    @property
-    def stitches(self) -> list[Stitch]:
-        # if there aren't any repeats in the instructions, those are the stitches
-        if not any(isinstance(x, Repeat) for x in self.instructions):
-            return self.instructions
+    def __eq__(self, other):
+        if not isinstance(other, Row):
+            return False
         
-        # if there are, expand them starting from the last repeat
-        repeat_indexes = []
-        for idx, val in enumerate(self.instructions):
-            if isinstance(val, Repeat):
-                repeat_indexes.append(idx)
+        if (self.number == other.number) and (self.instructions == other.instructions):
+            return True
+    
+    def expand(self, prev_stitch_count:int):
+        """Expand any Repeats in the Row and get the total count of stitches in the Row"""
+        stitches = []
+        count = 0
+        prev_stitches_knitted = 0
 
-        print(f"repeat_indexes are {repeat_indexes}")
+        for instruction in self.instructions:
+            if isinstance(instruction, Stitch):
+                stitches.append(instruction)
+                prev_stitches_knitted += instruction.stitches_consumed
+                count += 1
+            elif isinstance(instruction, Repeat):
+                remaining_stitches = prev_stitch_count - prev_stitches_knitted
+                expanded = instruction.expand(remaining_stitches)
+                stitches.extend(expanded)
+                
+                for stitch in expanded:
+                    prev_stitches_knitted += stitch.stitches_consumed
 
-        instructions = self.instructions
-        print(f"instructions are {instructions}")
-        while len(repeat_indexes) != 0:
-            i = repeat_indexes.pop()
-            print(f"i is {i}")
-            repeat:Repeat = instructions[i]
+                count += len(expanded)
 
-            expanded = repeat.expand()
-            instructions = instructions[:i] + expanded + instructions[i+1:] # replace the Repeat with the expanded stitches
-            
-            print(f"instructions are now {instructions}")
-
-        return instructions
+        expanded_row = Row(self.number, stitches)
+        return (expanded_row, count)
     
 class Section:
     def __init__(self, caston:int, rows:list[Row], name:str="main"):
+        # error checking types
+        if not isinstance(caston, int):
+            raise TypeError(f"Section caston must be type int, got type {type(caston)}")
+        if not isinstance(rows, list):
+            raise TypeError(f"Section rows must be type list, got type {type(rows)}")
+        if not all(isinstance(row, Row) for row in rows):
+            raise TypeError(f"Items in Section rows must be of type Row")
+        if not isinstance(name, str):
+            raise TypeError(f"Section caston must be type str, got type {type(name)}")
+
         self.caston = caston
         self.rows = rows
         self.name = name
 
     @property
     def pattern(self):
-        row_idxs_and_counts:list[tuple[int, int]] = []
+        row_and_stitch_count:list[tuple[int, int]] = []
 
         for idx, row in enumerate(self.rows):
             if idx == 0:
-                row_idxs_and_counts.append((row.number, self.caston))
+                row_and_stitch_count.append((row, self.caston))
                 continue
             
-            # get the stitch count of the current row by the previous row's
-            stitch_count = row.get_stitch_count(prev_stitch_count=row_idxs_and_counts[-1][1])
+            prev_stitch_count:int = row_and_stitch_count[-1][1] # get the stitch_count previously appended
+            expanded_row, stitch_count = row.expand(prev_stitch_count)
+
+            row_and_stitch_count.append((expanded_row, stitch_count))
+        
+        return row_and_stitch_count
+    
+class Pattern:
+    def __init__(self, name:str, sections:list[Section]):
+        self.sections = sections
