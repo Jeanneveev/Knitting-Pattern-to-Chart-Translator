@@ -44,7 +44,7 @@ class Stitch:
 
 @dataclass
 class Repeat:
-    elements:List[Union[Stitch, "Repeat"]]
+    elements:List[Union[Stitch, "Repeat"]] # List[Union[a, "b"]] allows type-hints for class b in class b
     num_times:int=None
     stitches_after:int=0
     has_num_times = False   # placeholder for post_init
@@ -128,17 +128,17 @@ class Row:
         expanded_row = Row(self.number, stitches)
         return (expanded_row, count)
     
-class Section:
+class Part:
     def __init__(self, caston:int, rows:list[Row], name:str="main"):
         # error checking types
         if not isinstance(caston, int):
-            raise TypeError(f"Section caston must be type int, got type {type(caston)}")
+            raise TypeError(f"Part caston must be type int, got type {type(caston)}")
         if not isinstance(rows, list):
-            raise TypeError(f"Section rows must be type list, got type {type(rows)}")
+            raise TypeError(f"Part rows must be type list, got type {type(rows)}")
         if not all(isinstance(row, Row) for row in rows):
-            raise TypeError(f"Items in Section rows must be of type Row")
+            raise TypeError(f"Items in Part rows must be of type Row")
         if not isinstance(name, str):
-            raise TypeError(f"Section caston must be type str, got type {type(name)}")
+            raise TypeError(f"Part caston must be type str, got type {type(name)}")
 
         self.caston = caston
         self.rows = rows
@@ -160,6 +160,7 @@ class Section:
         
         return row_and_stitch_count
     
-class Pattern:
-    def __init__(self, name:str, sections:list[Section]):
-        self.sections = sections
+class Project:
+    def __init__(self, name:str, parts:list[Part]):
+        self.name = name
+        self.parts = parts

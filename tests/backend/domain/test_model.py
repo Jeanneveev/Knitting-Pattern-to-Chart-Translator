@@ -1,6 +1,6 @@
 import re
 import pytest
-from src.backend.domain.model import Stitch, Repeat, Row, Section, StitchType, Pattern
+from src.backend.domain.model import Stitch, Repeat, Row, Part, StitchType, Project
 
 def test_stitch_type_has_limited_values():
     stitch_types = ["reg", "incr", "decr"]
@@ -73,21 +73,21 @@ def test_row_expanding_row_with_repeats_expands_repeats_without_set_num_times():
     expected_row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k"), Stitch("k")])
     assert row.expand(6) == (expected_row, 6)
 
-def test_section_must_include_caston_num_and_rows():
-    section = Section(caston=1, rows=[Row(1, [Stitch("p")])])
+def test_part_must_include_caston_num_and_rows():
+    part = Part(caston=1, rows=[Row(1, [Stitch("p")])])
 
-    with pytest.raises(TypeError, match=re.escape("Section.__init__() missing 2 required positional arguments: 'caston' and 'rows'")):
-        section_invalid = Section()
+    with pytest.raises(TypeError, match=re.escape("Part.__init__() missing 2 required positional arguments: 'caston' and 'rows'")):
+        part_invalid = Part()
 
-def test_section_pattern_includes_row_and_row_stitch_count():
+def test_part_pattern_includes_row_and_row_stitch_count():
     row_1 = Row(1, [Stitch("p"), Stitch("k"), Stitch("p")])
     row_2 = Row(2, [Stitch("k"), Stitch("p"), Stitch("k")])
-    section = Section(caston=3, rows=[row_1, row_2])
+    part = Part(caston=3, rows=[row_1, row_2])
     
-    assert section.pattern == [(row_1, 3), (row_2, 3)]
+    assert part.pattern == [(row_1, 3), (row_2, 3)]
 
-def test_patterns_must_have_name_and_one_or_more_sections():
-    pattern = Pattern(name="test", sections=[Section(caston=1, rows=[Row(1, [Stitch("p")])])])
+def test_projects_must_have_name_and_one_or_more_parts():
+    pattern = Project(name="test", parts=[Part(caston=1, rows=[Row(1, [Stitch("p")])])])
 
-    with pytest.raises(TypeError, match=re.escape("Pattern.__init__() missing 2 required positional arguments: 'name' and 'sections'")):
-        pattern_invalid = Pattern()
+    with pytest.raises(TypeError, match=re.escape("Project.__init__() missing 2 required positional arguments: 'name' and 'parts'")):
+        pattern_invalid = Project()
