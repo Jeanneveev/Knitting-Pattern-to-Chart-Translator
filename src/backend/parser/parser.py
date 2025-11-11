@@ -179,9 +179,7 @@ class Parser:
         print(f"repeat section is: {repeat_section}")
         self.expect(["*"])
         if self._curr_token != ";":
-            stitches_left = ... # TODO: fix stitches_after to be correct count
-            # print(f"no reapeat number specified. curr_st_num is {self._curr_st_num} and stitches_parsed are {self._stitches_parsed}")
-            return Repeat(elements=repeat_section, stitches_after=stitches_left)
+            return Repeat(repeat_section)
         print("repeat number specified")
         self.expect_series([[";"], ["repeat"], ["from"], ["*"], ["to"], ["*"]])
 

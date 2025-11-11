@@ -76,7 +76,7 @@ class TestParserCreation(unittest.TestCase):
             "k3, *p2, k2*, k1")
         expected_row = Row(
             1, [Stitch("k"), Stitch("k"), Stitch("k"),
-            Repeat(elements=[Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")], num_times=None, stitches_after=1),
+            Repeat(elements=[Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")], num_times=None),
             Stitch("k")]
         )
         expected = Part(12, [expected_row])
