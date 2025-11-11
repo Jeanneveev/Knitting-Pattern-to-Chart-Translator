@@ -45,8 +45,8 @@ class Stitch:
 @dataclass
 class Repeat:
     elements:List[Union[Stitch, "Repeat"]] # List[Union[a, "b"]] allows type-hints for class b in class b
-    num_times:int=None
-    stitches_after:int=0
+    num_times:int = None
+    stitches_after:int = None
     has_num_times = False   # placeholder for post_init
 
     def __post_init__(self):
@@ -55,8 +55,8 @@ class Repeat:
             raise TypeError(f"Repeat elements must be type list, got type {type(self.elements)}")
         if not all(isinstance(el, (Stitch, Repeat)) for el in self.elements):
             raise TypeError(f"Items in Repeat elements must be of type Stitch or Repeat")
-        if not isinstance(self.stitches_after, int):
-            raise TypeError(f"Repeat stitches_after must be type int, got type {type(self.stitches_after)}")
+        if not isinstance(self.stitches_after, (type(None), int)):
+            raise TypeError(f"Repeat stitches_after must be type int or None, got type {type(self.stitches_after)}")
 
         # set the actual value of has_num_times
         self.has_num_times = True if self.num_times is not None else False
@@ -68,22 +68,14 @@ class Repeat:
                     if isinstance(subelement, Repeat): # multiple layers of nesting, NOT ok
                         raise SyntaxError("Repeats cannot be nested more than once")
 
-    def expand(self, remaining_stitches=0):
-        if self.has_num_times:
-            return self.elements * self.num_times
+    def __eq__(self, other):
+        if not isinstance(other, Repeat):
+            return False
         
-        if remaining_stitches != 0:
-            repeat_length = remaining_stitches - self.stitches_after
-            num_repeats:float = repeat_length / len(self.elements)
+        if (self.elements == other.elements) and (self.num_times == other.num_times) and (self.stitches_after == other.stitches_after):
+            return True
+        return False
 
-            if not num_repeats.is_integer():
-                raise ValueError(f"The length of the repeat is {repeat_length}, which does not match with the number of elements in the repeat {len(self.elements)}")
-            
-            num_repeats = int(num_repeats)
-            return self.elements * num_repeats
-        
-        raise ValueError("Not enough information to expand repeat")
-        
 class Row:
     def __init__(self, number:int, instructions:list[Stitch | Repeat]):
         # error checking types
@@ -93,6 +85,19 @@ class Row:
             raise TypeError(f"Row instructions must be type int, got type {type(instructions)}")
         if not all(isinstance(instruction, (Stitch, Repeat)) for instruction in instructions):
             raise TypeError(f"Items in Row instructions must be of type Stitch or Repeat")
+        
+        # Check that, if there is an implicit repeat in the row, it is the last one
+        repeats = [instruction for instruction in instructions if isinstance(instruction, Repeat)]
+        if len(repeats) != 0:
+            implicit_repeats = [repeat for repeat in repeats if repeat.has_num_times == False]
+            
+            if len(implicit_repeats) > 1:
+                raise SyntaxError("A row may only have one implicit repeat")
+            
+            if len(implicit_repeats) != 0:
+                implicit_repeat = implicit_repeats[0]
+                if implicit_repeat != repeats[-1]:
+                    raise SyntaxError("An implicit repeat must be the last Repeat in the Row")
         
         self.number = number
         self.instructions = instructions
@@ -104,7 +109,7 @@ class Row:
         if (self.number == other.number) and (self.instructions == other.instructions):
             return True
     
-    def expand(self, prev_stitch_count:int):
+    def expand(self, prev_row_st_count:int):
         """Expand any Repeats in the Row and get the total count of stitches in the Row"""
         stitches = []
         count = 0
@@ -116,8 +121,8 @@ class Row:
                 prev_stitches_knitted += instruction.stitches_consumed
                 count += 1
             elif isinstance(instruction, Repeat):
-                remaining_stitches = prev_stitch_count - prev_stitches_knitted
-                expanded = instruction.expand(remaining_stitches)
+                remaining_stitches = prev_row_st_count - prev_stitches_knitted
+                expanded:list[Stitch] = self._expand_repeat(instruction, remaining_stitches)
                 stitches.extend(expanded)
                 
                 for stitch in expanded:
@@ -127,6 +132,55 @@ class Row:
 
         expanded_row = Row(self.number, stitches)
         return (expanded_row, count)
+    
+    def _expand_repeat(self, repeat:Repeat, remaining_sts:int):
+        # Repeat repeats explicit number of times
+        if repeat.has_num_times:
+            return repeat.elements * repeat.num_times
+        
+        # Repeat repeats implicit number of times
+        if repeat.stitches_after == None:   # hasn't been calculated yet
+            resolve_implicit_repeat(self)
+
+        if remaining_sts != 0:
+            repeat_length = remaining_sts - repeat.stitches_after
+            num_repeats:float = repeat_length / len(repeat.elements)
+
+            if not num_repeats.is_integer():
+                raise ValueError(f"The length of the repeat is {repeat_length}, which does not match with the number of elements in the repeat {len(repeat.elements)}")
+            
+            num_repeats = int(num_repeats)
+            return repeat.elements * num_repeats
+        
+        raise ValueError("Not enough information to expand repeat")
+        
+
+def resolve_implicit_repeat(row:Row) -> None:
+    """
+    Calculates the number of stitches after a Repeat object inside a given row with no specified number of repeats
+    and modifies the "stitches_after" attribute of that Repeat in-place
+
+    Handles the semantics of Repeats with no given number of repeats
+    """
+    
+    instructions = row.instructions
+    idxs = [i for i, instruction in enumerate(instructions) if isinstance(instruction, Repeat)]
+    
+    if len(idxs) == 0:  # There are no implicit repeats
+        return
+
+    idx = idxs[-1]  # An implicit Repeat, if it exists, is always the last Repeat
+    
+    repeat = instructions[idx]
+    if repeat.has_num_times:    # Last repeat is explicit, there are no implicit repeats
+        return
+
+    instrs_after = instructions[idx + 1 :]
+    stitches_after = sum(instr.stitches_consumed for instr in instrs_after if isinstance(instr, Stitch))
+
+    # modify Repeat
+    repeat.stitches_after = stitches_after
+    
     
 class Part:
     def __init__(self, caston:int, rows:list[Row], name:str="main"):
@@ -138,11 +192,19 @@ class Part:
         if not all(isinstance(row, Row) for row in rows):
             raise TypeError(f"Items in Part rows must be of type Row")
         if not isinstance(name, str):
-            raise TypeError(f"Part caston must be type str, got type {type(name)}")
+            raise TypeError(f"Part name must be type str, got type {type(name)}")
 
         self.caston = caston
         self.rows = rows
         self.name = name
+
+    def __eq__(self, other):
+        if not isinstance(other, Part):
+            return False
+        
+        if (self.caston == other.caston) and (self.rows == other.rows) and (self.name == other.name):
+            return True
+        return False
 
     @property
     def pattern(self):

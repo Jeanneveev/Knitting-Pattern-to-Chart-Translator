@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang='en'>
+    <head>
+        <meta charset='UTF-8' />
+        <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+        <title>Pattern to Chart</title>
+    </head>
+    <body>
+        <h1>Enter Pattern</h1>
+        <form action="" method="POST">
+            <input type="text" name="pattern_input" id="pattern_input" placeholder="Enter pattern here">
+            {% csrf_token %}
+        </form>
+
+        <div class="chart-container">
+            <p id="chart"></p>
+        </div>
+    </body>
+</html>

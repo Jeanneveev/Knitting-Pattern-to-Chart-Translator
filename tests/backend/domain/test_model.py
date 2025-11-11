@@ -1,93 +1,130 @@
-import re
-import pytest
-from src.backend.domain.model import Stitch, Repeat, Row, Part, StitchType, Project
+import unittest
+from src.backend.domain.model import Stitch, Repeat, Row, Part, StitchType, Project, resolve_implicit_repeat
 
-def test_stitch_type_has_limited_values():
-    stitch_types = ["reg", "incr", "decr"]
-    for st in stitch_types:
-        assert StitchType(st) is not None
-    
-    invalid_type = "smth"
-    with pytest.raises(ValueError, match=re.escape(f"'{invalid_type}' is not a valid StitchType")):
-        StitchType(invalid_type)
+class TestStitch(unittest.TestCase):
+    def test_stitch_type_has_limited_values(self):
+        stitch_types = ["reg", "incr", "decr"]
+        for st in stitch_types:
+            self.assertNotEqual(StitchType(st), None)
+        
+        invalid_type = "smth"
+        with self.assertRaises(ValueError) as err:
+            StitchType(invalid_type)
+        self.assertEqual(str(err.exception), f"'{invalid_type}' is not a valid StitchType")
 
-def test_can_create_stitch_by_abbreviation():
-    stitch = Stitch(abbrev="k")
-    assert stitch.name == "knit"
+    def test_can_create_stitch_by_abbreviation(self):
+        stitch = Stitch(abbrev="k")
+        self.assertEqual(stitch.name, "knit")
 
-def test_certain_stitches_have_set_values():
-    stitch = Stitch(abbrev="k")
-    assert stitch.name == "knit"
-    assert stitch.symbol_rs == " "
-    assert stitch.stitches_consumed == 1
+    def test_certain_stitches_have_set_values(self):
+        stitch = Stitch(abbrev="k")
+        self.assertEqual(stitch.name, "knit")
+        self.assertEqual(stitch.symbol_rs, " ")
+        self.assertEqual(stitch.stitches_consumed, 1)
 
-    stitch = Stitch(abbrev="p")
-    assert stitch.name == "purl"
-    assert stitch.symbol_rs == "-"
-    assert stitch.stitches_consumed == 1
+        stitch = Stitch(abbrev="p")
+        self.assertEqual(stitch.name, "purl")
+        self.assertEqual(stitch.symbol_rs, "-")
+        self.assertEqual(stitch.stitches_consumed, 1)
 
-def test_setting_repeat_with_num_times_sets_has_num_times():
-    repeat = Repeat(elements=[Stitch("k"), Stitch("p")], num_times=3)
-    assert repeat.has_num_times == True
+class TestRepeat(unittest.TestCase):
+    def test_setting_repeat_with_num_times_sets_has_num_times(self):
+        repeat = Repeat(elements=[Stitch("k"), Stitch("p")], num_times=3)
+        self.assertEqual(repeat.has_num_times, True)
 
-def test_setting_repeat_without_num_times_sets_has_num_times_to_false():
-    repeat = Repeat(elements=[Stitch("k"), Stitch("p")])
-    assert repeat.has_num_times == False
+    def test_setting_repeat_without_num_times_sets_has_num_times_to_false(self):
+        repeat = Repeat(elements=[Stitch("k"), Stitch("p")])
+        self.assertEqual(repeat.has_num_times, False)
 
-def test_repeats_cannot_be_nested_one_level():
-    assert Repeat(elements=[Repeat(elements=[Stitch("k")])]) is not None
+    def test_repeats_cannot_be_nested_one_level(self):
+        self.assertNotEqual(Repeat(elements=[Repeat(elements=[Stitch("k")])]), None)
 
-def test_repeats_cannot_be_nested_more_than_one_level():
-    with pytest.raises(SyntaxError, match="Repeats cannot be nested more than once"):
-        overnested = Repeat(elements=[Repeat(elements=[Repeat(elements=[])])])
+    def test_repeats_cannot_be_nested_more_than_one_level(self):
+        with self.assertRaises(SyntaxError) as err:
+            overnested = Repeat(elements=[Repeat(elements=[Repeat(elements=[])])])
+        self.assertEqual(str(err.exception), "Repeats cannot be nested more than once")
 
-def test_can_expand_fixed_num_time_repeat():
-    repeat = Repeat(elements=[Stitch("k"), Stitch("p")], num_times=3)
-    assert repeat.expand() == [Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p")]
+class TestRow(unittest.TestCase):
+    def test_rows_must_be_initialized_with_number_and_instructions(self):
+        row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k")])
+        
+        with self.assertRaises(TypeError) as err:
+            row_invalid = Row(2)
+        self.assertEqual(str(err.exception), "Row.__init__() missing 1 required positional argument: 'instructions'")
 
-def test_can_expand_repeat_with_a_given_number_of_remaining_stitches():
-    repeat = Repeat(elements=[Stitch("k"), Stitch("p")])
-    assert repeat.expand(remaining_stitches=8) == [Stitch("k"), Stitch("p")] * 4
+    def test_rows_cannot_have_multiple_implicit_repeats(self):
+        with self.assertRaises(SyntaxError) as err:
+            row = Row(number=1, instructions=[
+                Repeat([Stitch("p"), Stitch("k")]), Stitch("p"),
+                Repeat([Stitch("k"), Stitch("p"), Stitch("k")])
+            ])
+        self.assertEqual(str(err.exception), "A row may only have one implicit repeat")
 
-def test_can_expand_repeat_with_stitches_afterwards():
-    repeat = Repeat(elements=[Stitch("k"), Stitch("p")], stitches_after=1)
-    assert repeat.expand(remaining_stitches=5) == [Stitch("k"), Stitch("p")] * 2
+    def test_rows_can_have_some_explicit_repeats_and_one_implicit_repeat(self):
+        try:
+            row = Row(number=1, instructions=[
+                Repeat([Stitch("p"), Stitch("k")], num_times=2), Stitch("p"),
+                Repeat([Stitch("p"), Stitch("k")], num_times=2), Stitch("p"),
+                Repeat([Stitch("k"), Stitch("p"), Stitch("k")])
+            ])
+        except Exception as err:
+            self.fail(f"An exception unexpectantly occured: {err}")
 
-def test_rows_must_be_initialized_with_number_and_instructions():
-    row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k")])
-    
-    with pytest.raises(TypeError, match=re.escape("Row.__init__() missing 1 required positional argument: 'instructions'")):
-        row_invalid = Row(2)
+    def test_rows_implicit_repeat_must_be_last_repeat(self):
+        with self.assertRaises(SyntaxError) as err:
+            row = Row(number=1, instructions=[
+                Repeat([Stitch("p"), Stitch("k")]), Stitch("p"),
+                Repeat([Stitch("k"), Stitch("p"), Stitch("k")], num_times=2)
+            ])
+        self.assertEqual(str(err.exception), "An implicit repeat must be the last Repeat in the Row")
 
-def test_row_expanding_all_stitch_row_returns_all_stitch_row_and_count():
-    row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k")])
-    assert row.expand(3) == (row, 3)
+    def test_can_expand_row_of_all_stitches(self):
+        row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k")])
+        self.assertEqual(row.expand(prev_row_st_count=3), (row, 3))
 
-def test_row_expanding_row_with_repeats_expands_repeats_with_set_num_times():
-    row = Row(number=1, instructions=[Stitch("k"), Repeat([Stitch("p"), Stitch("k")], num_times=2)])
-    expected_row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k")])
-    assert row.expand(5) == (expected_row, 5)
+    def test_can_expand_row_with_some_explicit_repeats(self):
+        row = Row(number=1, instructions=[Stitch("k"), Repeat([Stitch("p"), Stitch("k")], num_times=2)])
+        expected_row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k")])
+        self.assertEqual(row.expand(prev_row_st_count=5), (expected_row, 5))
 
-def test_row_expanding_row_with_repeats_expands_repeats_without_set_num_times():
-    row = Row(number=1, instructions=[Stitch("k"), Repeat([Stitch("p"), Stitch("k")], stitches_after=1), Stitch("k")])
-    expected_row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k"), Stitch("k")])
-    assert row.expand(6) == (expected_row, 6)
+    def test_can_expand_row_with_a_implicit_repeat(self):
+        row = Row(number=1, instructions=[Stitch("k"), Repeat([Stitch("p"), Stitch("k")]), Stitch("k")])
+        expected_row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k"), Stitch("k")])
+        self.assertEqual(row.expand(6), (expected_row, 6))
 
-def test_part_must_include_caston_num_and_rows():
-    part = Part(caston=1, rows=[Row(1, [Stitch("p")])])
+class TestComputeStitchesAfter(unittest.TestCase):
+    def test_can_insert_stitches_after_into_row_repeat(self):
+        row = Row(number=1, instructions=[
+            Stitch("k"), Repeat([Stitch("p"), Stitch("k")], num_times=2), Stitch("k"),
+            Repeat([Stitch("p"), Stitch("k")]), Stitch("k"), Stitch("k")
+        ])
+        
+        resolve_implicit_repeat(row)
 
-    with pytest.raises(TypeError, match=re.escape("Part.__init__() missing 2 required positional arguments: 'caston' and 'rows'")):
-        part_invalid = Part()
+        self.assertEqual(row.instructions[3].stitches_after, 2)
 
-def test_part_pattern_includes_row_and_row_stitch_count():
-    row_1 = Row(1, [Stitch("p"), Stitch("k"), Stitch("p")])
-    row_2 = Row(2, [Stitch("k"), Stitch("p"), Stitch("k")])
-    part = Part(caston=3, rows=[row_1, row_2])
-    
-    assert part.pattern == [(row_1, 3), (row_2, 3)]
+class TestPart(unittest.TestCase):
+    def test_part_must_include_caston_num_and_rows(self):
+        part = Part(caston=1, rows=[Row(1, [Stitch("p")])])
 
-def test_projects_must_have_name_and_one_or_more_parts():
-    pattern = Project(name="test", parts=[Part(caston=1, rows=[Row(1, [Stitch("p")])])])
+        with self.assertRaises(TypeError) as err:
+            part_invalid = Part()
+        self.assertEqual(str(err.exception), "Part.__init__() missing 2 required positional arguments: 'caston' and 'rows'")
 
-    with pytest.raises(TypeError, match=re.escape("Project.__init__() missing 2 required positional arguments: 'name' and 'parts'")):
-        pattern_invalid = Project()
+    def test_part_pattern_includes_row_and_row_stitch_count(self):
+        row_1 = Row(1, [Stitch("p"), Stitch("k"), Stitch("p")])
+        row_2 = Row(2, [Stitch("k"), Stitch("p"), Stitch("k")])
+        part = Part(caston=3, rows=[row_1, row_2])
+        
+        self.assertEqual(part.pattern, [(row_1, 3), (row_2, 3)])
+
+class TestProject(unittest.TestCase):
+    def test_projects_must_have_name_and_one_or_more_parts(self):
+        pattern = Project(name="test", parts=[Part(caston=1, rows=[Row(1, [Stitch("p")])])])
+
+        with self.assertRaises(TypeError) as err:
+            pattern_invalid = Project()
+        self.assertEqual(str(err.exception), "Project.__init__() missing 2 required positional arguments: 'name' and 'parts'")
+
+if __name__ == "__main__":
+    unittest.main()
