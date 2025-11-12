@@ -68,13 +68,13 @@ class TestParser(unittest.TestCase):
         
         with self.assertRaises(TypeError) as err:
             parser.start()
-        self.assertEqual(str(err.exception), "Part caston must be type int, got type <class 'NoneType'>")
+        self.assertEqual("Part caston must be type int, got type <class 'NoneType'>", str(err.exception))
 
     def test_cannot_parse_repeats_without_caston(self):
         parser = Parser("k3, *p2, k2*, k1")
         with self.assertRaises(ParserError) as err:
             parser.start()
-        self.assertEqual(str(err.exception), "PARSER ERROR DETECTED:\nThe number of stitches cast-on must be specified in patterns with repeats")
+        self.assertEqual("PARSER ERROR DETECTED:\nThe number of stitches cast-on must be specified in patterns with repeats", str(err.exception))
 
     def test_can_parse_implicit_repeats(self):
         parser = Parser("cast on 12 st\n"
