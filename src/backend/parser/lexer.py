@@ -43,6 +43,9 @@ class Token:
     type:TokenType
     value:str
 
+    def __str__(self):
+        return self.value
+
 class Lexer:
     def __init__(self, text:str|None):
         """Initializes the lexer instance and gets the first
