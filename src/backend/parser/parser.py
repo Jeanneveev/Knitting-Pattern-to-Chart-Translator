@@ -155,7 +155,7 @@ class Parser:
     def stitch_sequence(self) -> list[Stitch]:
         result = []
         if self._curr_token == "*": # repeat
-            print("repeat encountered")
+            # print("repeat encountered")
             result.append(self.repeat())
         else:   # | stitch
             result.extend(self.stitch())
@@ -164,7 +164,7 @@ class Parser:
             # print("appending another stitch in sequence")
             self.advance()
             if self._curr_token == "*": # repeat
-                print("repeat encountered")
+                # print("repeat encountered")
                 result.append(self.repeat())
             else:   # | stitch
                 result.extend(self.stitch())
@@ -176,11 +176,11 @@ class Parser:
             raise ParserError("The number of stitches cast-on must be specified in patterns with repeats")
         self.expect(["*"])
         repeat_section = self.stitch_sequence()
-        print(f"repeat section is: {repeat_section}")
+        # print(f"repeat section is: {repeat_section}")
         self.expect(["*"])
         if self._curr_token != ";":
             return Repeat(repeat_section)
-        print("repeat number specified")
+        # print("repeat number specified")
         self.expect_series([[";"], ["repeat"], ["from"], ["*"], ["to"], ["*"]])
 
         if not self._curr_token.isdigit():
@@ -188,7 +188,7 @@ class Parser:
         num_repeats = int(self._curr_token)
         self.advance()
         self.expect(["times"])
-        return Repeat(repeat_section, times=num_repeats)
+        return Repeat(repeat_section, num_times=num_repeats)
 
     # stitch = STITCH_TYPE , ? integer ? ;
     def stitch(self) -> list[Stitch]:
@@ -202,12 +202,12 @@ class Parser:
         self._stitches_parsed += multiplier
         return [result] * multiplier
 
-    # STITCH_TYPE = "k" | "p" ;
+    # STITCH_TYPE = "k" | "p" | "yo" ;
     def stitch_type(self) -> Stitch:
         current = self._curr_token
         if self._curr_token == "yo":    #increase
             self._curr_st_num += 1
-            print(f"increase found, curr_st is: {self._curr_st_num}")
+            # print(f"increase found, curr_st is: {self._curr_st_num}")
         self.expect(["k", "p", "yo"])
 
         return Stitch(current)

@@ -3,7 +3,7 @@ import unittest
 from src.backend.parser.parser import Parser, ParserError
 from src.backend.domain.model import Stitch, Repeat, Row, Part
 
-class TestParserCreation(unittest.TestCase):
+class TestParser(unittest.TestCase):
     def test_can_create_parser(self):
         parser = Parser("k")
         assert parser is not None
@@ -71,9 +71,15 @@ class TestParserCreation(unittest.TestCase):
             parser.start()
         self.assertEqual(str(err.exception), "Part caston must be type int, got type <class 'NoneType'>")
 
-    def test_can_parse_non_number_specified_repeats(self):
+    def test_cannot_parse_repeats_without_caston(self):
+        parser = Parser("k3, *p2, k2*, k1")
+        with self.assertRaises(ParserError) as err:
+            parser.start()
+        self.assertEqual(str(err.exception), "PARSER ERROR DETECTED:\nThe number of stitches cast-on must be specified in patterns with repeats")
+
+    def test_can_parse_implicit_repeats(self):
         parser = Parser("cast on 12 st\n"
-            "k3, *p2, k2*, k1")
+                        "k3, *p2, k2*, k1")
         expected_row = Row(
             1, [Stitch("k"), Stitch("k"), Stitch("k"),
             Repeat(elements=[Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")], num_times=None),
@@ -83,8 +89,39 @@ class TestParserCreation(unittest.TestCase):
         actual = parser.start()
         self.assertEqual(expected, actual, f"expected part was Part({expected.caston}, [Row({expected_row.number}, [{expected_row.instructions}])]).\n actual was Part({actual.caston}, [Row({actual.rows[0].number}, [{actual.rows[0].instructions}])])")
 
-    def test_repeat_cannot_parse_without_caston(self):
-        ...
+    def test_can_parse_explicit_repeats(self):
+        parser = Parser(
+            "cast on 12 st\n"
+            "k3, *p2, k2*; repeat from * to * 2 times, k1"
+        )
+        expected_row = Row(1, [
+            Stitch("k"), Stitch("k"), Stitch("k"),
+            Repeat([Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")], num_times=2),
+            Stitch("k")
+        ])
+        expected = Part(12, [expected_row])
+        actual = parser.start()
+        self.assertEqual(expected, actual)
+
+    def test_can_parse_increase(self):
+        parser = Parser("cast on 5 sts\n"
+                        "k2, yo, k1, yo, k2")
+        expected_row = Row(1, [
+            Stitch("k"), Stitch("k"), Stitch("yo"), Stitch("k"), Stitch("yo"), Stitch("k"), Stitch("k")
+        ])
+        expected = Part(5, [expected_row])
+        actual = parser.start()
+        self.assertEqual(expected, actual)
+
+    def test_can_parse_decrease(self):
+        parser = Parser("cast on 7 sts\n"
+                        "k1, k2tog, k1, ssk, k")
+        expected_row = Row(1, [
+            Stitch("k"), Stitch("k2tog"), Stitch("k"), Stitch("ssk"), Stitch("k")
+        ])
+        expected = Part(7, [expected_row])
+        actual = parser.start()
+        self.assertEqual(expected, actual)
 
 
 if __name__ == "__main__":
