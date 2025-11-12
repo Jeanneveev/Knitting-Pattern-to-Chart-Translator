@@ -65,7 +65,7 @@ class Lexer:
             return None
         return self.text[self.pos+1:self.pos+x]
     
-    def scan(self):
+    def scan(self) -> list[Token]:
         """Read the given text and break it down into primitive tokens"""
         primitive_tokens = []
         while self.pos < len(self.text):
@@ -84,13 +84,13 @@ class Lexer:
             # scan letter sequences
             if self._curr_char.isalpha():
                 # print("word found")
-                primitive_tokens.append(self._tokenize_word())
+                primitive_tokens.append(self._tokenize_primitive_word())
                 continue
 
             # scan number sequences
             if self._curr_char.isdigit():
                 # print("number found")
-                primitive_tokens.append(self._tokenize_number())
+                primitive_tokens.append(self._tokenize_primitive_number())
                 continue
 
             if self._curr_char in [',', '*', ':', ';']:
@@ -105,7 +105,7 @@ class Lexer:
 
         return primitive_tokens
 
-    def _tokenize_word(self):
+    def _tokenize_primitive_word(self) -> Token:
         start_pos = self.pos
 
         while self.pos < len(self.text):    # iterate until you reach a non-letter
@@ -117,7 +117,7 @@ class Lexer:
         word = self.text[start_pos:self.pos]
         return Token(TokenType.WORD, word)
     
-    def _tokenize_number(self):
+    def _tokenize_primitive_number(self) -> Token:
         start_pos = self.pos
 
         while self.pos < len(self.text):    # iterate until you reach a non-digit
@@ -128,3 +128,41 @@ class Lexer:
 
         number = self.text[start_pos:self.pos]
         return Token(TokenType.NUMBER, number)
+
+    def combine(self, tokens: list[Token]) -> list[Token]:
+        KNOWN_STITCHES = ["k", "p", "yo", "ssk", "sl"]
+        KNOWN_PREFIXES = ["k", "p", "c"]
+        KNOWN_SUFFIXES = ["tog", "tbl", "f", "b"]
+
+        complex_tokens = []
+        i = 0
+        while i < len(tokens):
+            token = tokens[i]
+
+            # complex_stitch = primitive_word primitive_numbers primitive_word ;
+            if ((i+2 < len(tokens)) and                                                 # enough tokens left 
+                (token.type == TokenType.WORD) and (token.value in KNOWN_PREFIXES) and  # prefix valid
+                (tokens[i+1].type == TokenType.NUMBER) and                              # middle valid
+                (tokens[i+2].type == TokenType.WORD) and (tokens[i+2].value in KNOWN_SUFFIXES)  # suffix valid
+            ):
+                # print("stitch found")
+                combined_value = token.value + tokens[i+1].value + tokens[i+2].value
+                complex_tokens.append(Token(TokenType.STITCH, combined_value))
+                i+=3    # consume all 3 tokens
+                continue
+
+            # complex_stitch = primitive_word ;
+            if (token.type == TokenType.WORD) and (token.value in KNOWN_STITCHES):
+                complex_tokens.append(Token(TokenType.STITCH, token.value))
+                i+=1
+                continue
+
+            # all other tokens can be left as is
+            complex_tokens.append(token)
+            i+=1
+
+        return complex_tokens
+    
+    def tokenize(self) -> list[Token]:
+        primitive_tokens = self.scan()
+        return self.combine(primitive_tokens)

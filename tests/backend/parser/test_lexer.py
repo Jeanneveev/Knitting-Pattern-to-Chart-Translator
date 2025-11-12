@@ -67,21 +67,90 @@ class TestPrimitiveLexing(unittest.TestCase):
 
         self.assertEqual(expected, actual)
 
-# class TestComplexLexing(unittest.TestCase):
-#     def test_can_combine_stitch_from_only_words(self):
-#         lexer = Lexer("k, p, ssk")
-#         tokens = [
-#             Token(WORD, "k"), Token(SYMBOL, ","), Token(WORD, "p"), Token(SYMBOL, ","), Token(WORD, "ssk"),
-#             EOI_TOKEN
-#         ]
+class TestComplexLexing(unittest.TestCase):
+    def test_can_combine_single_letter_stitch(self):
+        lexer = Lexer("p")
+        tokens = [Token(WORD, "p")]
+        expected = [Token(STITCH, "p")]
+        actual = lexer.combine(tokens)
 
-#         expected = [
-#             Token(STITCH, "k"), Token(STITCH, "p"), Token(STITCH, "ssk"),
-#             EOI_TOKEN
-#         ]
-#         actual = lexer.combine(tokens)
+        self.assertEqual(expected, actual)
 
-#         self.assertEqual(expected, actual)
+    def test_can_combine_stitches_from_only_words(self):
+        lexer = Lexer("k, p, ssk")
+        tokens = [
+            Token(WORD, "k"), Token(SYMBOL, ","), Token(WORD, "p"), Token(SYMBOL, ","), Token(WORD, "ssk"),
+            EOI_TOKEN
+        ]
+
+        expected = [
+            Token(STITCH, "k"), Token(SYMBOL, ","), Token(STITCH, "p"), Token(SYMBOL, ","), Token(STITCH, "ssk"),
+            EOI_TOKEN
+        ]
+        actual = lexer.combine(tokens)
+
+        self.assertEqual(expected, actual)
+
+    def test_can_combine_stitches_from_prefix_number_suffix_pattern(self):
+        lexer = Lexer("N/A")
+        tokens = [Token(WORD, "k"), Token(NUMBER, "2"), Token(WORD, "tog")]
+        
+        expected = [Token(STITCH, "k2tog")]
+        actual = lexer.combine(tokens)
+        
+        self.assertEqual(expected, actual)
+
+    def test_can_not_combine_non_stitch_words(self):
+        lexer = Lexer("N/A")
+        tokens = [Token(WORD, "caston"), Token(WORD, "times")]
+
+        expected = [Token(WORD, "caston"), Token(WORD, "times")]
+        actual = lexer.combine(tokens)
+
+        self.assertEqual(expected, actual)
+
+    def test_can_combine_stitches_in_series_of_stitches_and_non_stitches(self):
+        self.maxDiff = None
+
+        lexer = Lexer("N/A")
+        tokens = [
+            Token(WORD, "caston"), Token(NUMBER, "10"), Token(WORD, "sts"), Token(NEWLINE, "\n"),
+            Token(WORD, "row"), Token(NUMBER, "1"), Token(SYMBOL, ":"),
+            Token(WORD, "k"), Token(NUMBER, "2"), Token(SYMBOL, ","),
+            Token(WORD, "c"), Token(NUMBER, "6"), Token(WORD, "f"), Token(SYMBOL, ","),
+            Token(WORD, "k"), Token(NUMBER, "2"),
+            EOI_TOKEN
+        ]
+
+        expected = [
+            Token(WORD, "caston"), Token(NUMBER, "10"), Token(WORD, "sts"), Token(NEWLINE, "\n"),
+            Token(WORD, "row"), Token(NUMBER, "1"), Token(SYMBOL, ":"),
+            Token(STITCH, "k"), Token(NUMBER, "2"), Token(SYMBOL, ","),
+            Token(STITCH, "c6f"), Token(SYMBOL, ","),
+            Token(STITCH, "k"), Token(NUMBER, "2"),
+            EOI_TOKEN
+        ]
+        actual = lexer.combine(tokens)
+
+        self.assertEqual(expected, actual)
+
+class TestCompleteLexing(unittest.TestCase):
+    def test_can_completely_tokenize_pattern(self):
+        lexer = Lexer("caston 4 sts\n"
+                    "row 1: p, k2tog, p\n"
+                    "row 2: k, ssk")
+
+        expected = [
+            Token(WORD, "caston"), Token(NUMBER, "4"), Token(WORD, "sts"), Token(NEWLINE, "\n"),
+            Token(WORD, "row"), Token(NUMBER, "1"), Token(SYMBOL, ":"),
+            Token(STITCH, "p"), Token(SYMBOL, ","), Token(STITCH, "k2tog"), Token(SYMBOL, ","), Token(STITCH, "p"), Token(NEWLINE, "\n"),
+            Token(WORD, "row"), Token(NUMBER, "2"), Token(SYMBOL, ":"),
+            Token(STITCH, "k"), Token(SYMBOL, ","), Token(STITCH, "ssk"),
+            EOI_TOKEN
+        ]
+        actual = lexer.tokenize()
+
+        self.assertEqual(expected, actual)
 
 if __name__ == "__main__":
     unittest.main()
