@@ -28,7 +28,6 @@ class ParserError(Exception):
 class Parser:
     # EOI = "? end of input ?"
     _caston_num:int|None = None
-    _stitches_parsed = 0
 
     def __init__(self, input:str):
         """Initializes the parser instance and gets the first token
@@ -119,9 +118,8 @@ class Parser:
             return Part(caston=caston, rows=[Row(number=1, instructions=instructions)])
         
         result = [self.row()]
-        while self._curr_token.value == "\n":
+        while self._curr_token.type == TokenType.NEWLINE:
             self.advance()
-            self._stitches_parsed = 0   # reset counter
             result.append(self.row())
 
         if (len(result) == 1) and (caston == None):     # One row, labeled, but w/o caston
@@ -203,12 +201,10 @@ class Parser:
     def stitch(self) -> list[Stitch]:
         result = self.stitch_type()
         if not self._curr_token.type == TokenType.NUMBER:  # just one stitch (e.g.: "k")
-            self._stitches_parsed += 1
             return [result]
         multiplier = int(self._curr_token.value)
         self.advance()
         # print(f"stitch parsed, next token is {self._curr_token}")
-        self._stitches_parsed += multiplier
         return [result] * multiplier
 
     # STITCH_TYPE = "k" | "p" | "yo" ;

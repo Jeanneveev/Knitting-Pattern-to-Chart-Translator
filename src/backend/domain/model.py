@@ -18,8 +18,11 @@ class Stitch:
     
     # The current dictionary of stitch abbreviations and their names and symbols
     STITCH_BY_ABBREV = {
-        "k": {"name": "knit", "type": "reg", "stitches_consumed": 1, "rs": " ", "ws": "-"},
-        "p": {"name": "purl", "type": "reg", "stitches_consumed": 1, "rs": "-", "ws": " "},
+        "k":    {"name": "knit",            "type": "reg",  "stitches_produced": 1,  "rs": " ", "ws": "-"},
+        "p":    {"name": "purl",            "type": "reg",  "stitches_produced": 1,  "rs": "-", "ws": " "},
+        "yo":   {"name": "yarn over",       "type": "incr", "stitches_produced": 2,  "rs": "O", "ws": "O"},
+        "k2tog":{"name": "knit 2 together", "type": "decr", "stitches_produced": 1, "rs": "/", "ws": "/"},
+        "ssk":  {"name": "slip slip knit",  "type": "decr", "stitches_produced": 1, "rs": "\\", "ws": "\\"},
     }
 
     @property
@@ -31,8 +34,8 @@ class Stitch:
         return StitchType(self.STITCH_BY_ABBREV[self.abbrev]["type"])
     
     @property
-    def stitches_consumed(self) -> int:
-        return self.STITCH_BY_ABBREV[self.abbrev]["stitches_consumed"]
+    def stitches_produced(self) -> int:
+        return self.STITCH_BY_ABBREV[self.abbrev]["stitches_produced"]
 
     @property
     def symbol_rs(self) -> str:
@@ -112,26 +115,22 @@ class Row:
     def expand(self, prev_row_st_count:int):
         """Expand any Repeats in the Row and get the total count of stitches in the Row"""
         stitches = []
-        count = 0
         prev_stitches_knitted = 0
 
         for instruction in self.instructions:
             if isinstance(instruction, Stitch):
                 stitches.append(instruction)
-                prev_stitches_knitted += instruction.stitches_consumed
-                count += 1
+                prev_stitches_knitted += instruction.stitches_produced
             elif isinstance(instruction, Repeat):
                 remaining_stitches = prev_row_st_count - prev_stitches_knitted
                 expanded:list[Stitch] = self._expand_repeat(instruction, remaining_stitches)
                 stitches.extend(expanded)
                 
                 for stitch in expanded:
-                    prev_stitches_knitted += stitch.stitches_consumed
-
-                count += len(expanded)
+                    prev_stitches_knitted += stitch.stitches_produced
 
         expanded_row = Row(self.number, stitches)
-        return (expanded_row, count)
+        return expanded_row
     
     def _expand_repeat(self, repeat:Repeat, remaining_sts:int):
         # Repeat repeats explicit number of times
@@ -153,7 +152,22 @@ class Row:
             return repeat.elements * num_repeats
         
         raise ValueError("Not enough information to expand repeat")
+    
+    def get_symbols_rs(self) -> list[str]:
+        """Return the right-side symbols of the row if it has no Repeats"""
+        if any(isinstance(instruction, Repeat) for instruction in self.instructions):
+            raise ValueError("Cannot get symbols of rows with Repeats")
         
+        return [stitch.symbol_rs for stitch in self.instructions]
+        
+    def get_symbols_ws(self) -> list[str]:
+        """Return the wrong-side symbols of the row if it has no Repeats"""
+        if any(isinstance(instruction, Repeat) for instruction in self.instructions):
+            raise ValueError("Cannot get symbols of rows with Repeats")
+        
+        return [stitch.symbol_ws for stitch in self.instructions]
+        
+
 
 def resolve_implicit_repeat(row:Row) -> None:
     """
@@ -176,11 +190,10 @@ def resolve_implicit_repeat(row:Row) -> None:
         return
 
     instrs_after = instructions[idx + 1 :]
-    stitches_after = sum(instr.stitches_consumed for instr in instrs_after if isinstance(instr, Stitch))
+    stitches_after = sum(instr.stitches_produced for instr in instrs_after if isinstance(instr, Stitch))
 
     # modify Repeat
     repeat.stitches_after = stitches_after
-    
     
 class Part:
     def __init__(self, caston:int, rows:list[Row], name:str="main"):
@@ -205,24 +218,62 @@ class Part:
         if (self.caston == other.caston) and (self.rows == other.rows) and (self.name == other.name):
             return True
         return False
+    
+    def get_row_stitch_count(self, row:Row, prev_row_st_count:int) -> int:
+        """Get the stitch count of a row"""
+        if any(isinstance(instruction, Repeat) for instruction in row.instructions):
+            row = row.expand(prev_row_st_count)
+
+        count = 0
+        for stitch in row.instructions:
+            count += stitch.stitches_produced
+
+        return count
 
     @property
     def pattern(self):
+        """Creates a list of tuples of expanded Rows and their stitch counts"""
         row_and_stitch_count:list[tuple[int, int]] = []
 
         for idx, row in enumerate(self.rows):
             if idx == 0:
-                row_and_stitch_count.append((row, self.caston))
+                row_and_stitch_count.append((row.expand(self.caston), self.caston))
                 continue
             
             prev_stitch_count:int = row_and_stitch_count[-1][1] # get the stitch_count previously appended
-            expanded_row, stitch_count = row.expand(prev_stitch_count)
+            expanded_row = row.expand(prev_stitch_count)
+            stitch_count = self.get_row_stitch_count(row, prev_stitch_count)
 
             row_and_stitch_count.append((expanded_row, stitch_count))
         
         return row_and_stitch_count
+            
+    def get_row(self, num) -> Row:
+        """Get the expanded version of a row of the pattern by its row number"""
+        return self.pattern[num-1][0]
     
 class Project:
     def __init__(self, name:str, parts:list[Part]):
         self.name = name
         self.parts = parts
+
+@dataclass
+class Chart:
+    pattern:Part
+
+    def get_row_symbols(self, n:int) -> dict:
+        """Display a row of a pattern using the stitches' symbols.
+        Note that odd rows are on the right side and use rs symbols while even rows are on
+        the wrong side and use ws symbols.
+        """
+        if n%2==1:  #right-side, display in reverse
+            # print("right-side")
+            row = self.pattern.get_row(n)
+            symbols = row.get_symbols_rs()
+            symbols.reverse()
+            return {n: symbols}
+        else:   #wrong-side, display normally
+            print("wrong-side")
+            row = self.pattern.get_row(n)
+            symbols = row.get_symbols_ws()
+            return {n: symbols}

@@ -20,12 +20,12 @@ class TestStitch(unittest.TestCase):
         stitch = Stitch(abbrev="k")
         self.assertEqual(stitch.name, "knit")
         self.assertEqual(stitch.symbol_rs, " ")
-        self.assertEqual(stitch.stitches_consumed, 1)
+        self.assertEqual(stitch.stitches_produced, 1)
 
         stitch = Stitch(abbrev="p")
         self.assertEqual(stitch.name, "purl")
         self.assertEqual(stitch.symbol_rs, "-")
-        self.assertEqual(stitch.stitches_consumed, 1)
+        self.assertEqual(stitch.stitches_produced, 1)
 
 class TestRepeat(unittest.TestCase):
     def test_setting_repeat_with_num_times_sets_has_num_times(self):
@@ -80,17 +80,28 @@ class TestRow(unittest.TestCase):
 
     def test_can_expand_row_of_all_stitches(self):
         row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k")])
-        self.assertEqual(row.expand(prev_row_st_count=3), (row, 3))
+        self.assertEqual(row.expand(prev_row_st_count=3), row)
 
     def test_can_expand_row_with_some_explicit_repeats(self):
         row = Row(number=1, instructions=[Stitch("k"), Repeat([Stitch("p"), Stitch("k")], num_times=2)])
         expected_row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k")])
-        self.assertEqual(row.expand(prev_row_st_count=5), (expected_row, 5))
+        self.assertEqual(row.expand(prev_row_st_count=5), expected_row)
 
     def test_can_expand_row_with_a_implicit_repeat(self):
         row = Row(number=1, instructions=[Stitch("k"), Repeat([Stitch("p"), Stitch("k")]), Stitch("k")])
         expected_row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k"), Stitch("k")])
-        self.assertEqual(row.expand(6), (expected_row, 6))
+        self.assertEqual(row.expand(6), expected_row)
+
+    # def test_can_get_right_side_symbols_of_row(self):
+    #     row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k")])
+    #     expected = ["-", " ", "-"]
+    #     self.assertEqual()
+    # def test_cannot_get_right_side_symbols_of_row_with_repeats(self):
+    #     ...
+    # def test_can_get_wrong_side_symbols_of_row(self):
+    #     ...
+    # def test_cannot_get_wrong_side_symbols_of_row_with_repeats(self):
+    #     ...
 
 class TestComputeStitchesAfter(unittest.TestCase):
     def test_can_insert_stitches_after_into_row_repeat(self):
@@ -118,12 +129,53 @@ class TestPart(unittest.TestCase):
         
         self.assertEqual(part.pattern, [(row_1, 3), (row_2, 3)])
 
+    def test_can_get_stitch_count_of_flat_row(self):
+        row = Row(1, [Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k")])
+        part = Part(caston=4, rows=[row])
+
+        self.assertEqual(part.get_row_stitch_count(row, 4), 4)
+    
+    def test_can_get_stitch_count_of_row_with_repeats(self):
+        row = Row(1, [Repeat([Stitch("p"), Stitch("k")], 2)])
+        part = Part(caston=4, rows=[row])
+
+        self.assertEqual(part.get_row_stitch_count(row, 4), 4)
+
+    def test_can_get_stitch_count_of_row_with_increases(self):
+        row = Row(1, [Stitch("k"), Stitch("p"), Stitch("yo"), Stitch("p"), Stitch("k")])
+        part = Part(caston=5, rows=[row])
+
+        self.assertEqual(part.get_row_stitch_count(row, 5), 6)
+
+    def test_can_get_stitch_count_of_row_with_decreases(self):
+        row = Row(1, [Stitch("k"), Stitch("p"), Stitch("ssk"), Stitch("p"), Stitch("k")])
+        part = Part(caston=6, rows=[row])
+
+        self.assertEqual(part.get_row_stitch_count(row, 6), 5)
+
+    def test_can_get_row_by_number(self):
+        row_1 = Row(1, [Stitch("k"), Stitch("p"), Stitch("k")])
+        row_2 = Row(2, [Stitch("p"), Stitch("k"), Stitch("p")])
+        part = Part(3, [row_1, row_2])
+        
+        self.assertEqual(part.get_row(2), Row(2, [Stitch("p"), Stitch("k"), Stitch("p")]))
+
+    def test_can_get_expanded_row_by_number(self):
+        row_1 = Row(1, [Repeat([Stitch("k"), Stitch("p")])])
+        row_2 = Row(2, [Repeat([Stitch("p"), Stitch("k")])])
+        part = Part(6, [row_1, row_2])
+
+        expected = Row(1, [Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p")])
+        actual = part.get_row(1)
+        self.assertEqual(actual, expected, f"got Row({actual.instructions})")
+
+
 class TestProject(unittest.TestCase):
     def test_projects_must_have_name_and_one_or_more_parts(self):
-        pattern = Project(name="test", parts=[Part(caston=1, rows=[Row(1, [Stitch("p")])])])
+        project = Project(name="test", parts=[Part(caston=1, rows=[Row(1, [Stitch("p")])])])
 
         with self.assertRaises(TypeError) as err:
-            pattern_invalid = Project()
+            project_invalid = Project()
         self.assertEqual(str(err.exception), "Project.__init__() missing 2 required positional arguments: 'name' and 'parts'")
 
 if __name__ == "__main__":
