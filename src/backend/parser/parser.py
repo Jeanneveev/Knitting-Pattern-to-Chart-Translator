@@ -16,9 +16,8 @@ STITCH_TYPE     = "k" | "p" ;
 ? newline ? : Represents a newline ("/n") or some other kind of line divider
 """
 
-import re
 from src.backend.domain.model import Stitch, Repeat, Row, Part
-from src.backend.parser.lexer import Lexer, Token, TokenType
+from src.backend.parser.lexer import Lexer, TokenType
 
 class ParserError(Exception): 
     """Exception raised for errors during the parsing process"""
@@ -28,7 +27,7 @@ class ParserError(Exception):
 
 class Parser:
     # EOI = "? end of input ?"
-    _curr_st_num:int|None = None
+    _caston_num:int|None = None
     _stitches_parsed = 0
 
     def __init__(self, input:str):
@@ -38,13 +37,6 @@ class Parser:
         # print(f"tokens are: {self.tokenize(input)}")
         self._curr_token = None
         self.advance()  # start iteration
-
-    # def tokenize(self, input:str)->list[str]:
-    #     """Tokenize the input into a list of strings"""
-    #     pattern = r"[a-z]+|\d+|,|:|\n|\*|;"
-    #     tokens = re.findall(pattern, input)
-    #     tokens.append(self.EOI)
-    #     return tokens
 
     def advance(self):
         """Advances the iteration along the list of tokens"""
@@ -117,7 +109,7 @@ class Parser:
         if self._curr_token.value == "cast":
             caston = self.cast_on()
             # print(f"caston is {caston}")
-            self._curr_st_num = caston
+            self._caston_num = caston
             self.advance() #skip the newline token
 
         if self._curr_token.value in ["k", "p"]:  # One row, unlabeled
@@ -189,7 +181,7 @@ class Parser:
     
     # repeat = "*" , stitch_sequence , "*" , [";" , "repeat" , "from" , "*" , "to" , "*" , ? integer ? , "times" , ","] ;
     def repeat(self) -> Repeat:
-        if self._curr_st_num is None:
+        if self._caston_num is None:
             raise ParserError("The number of stitches cast-on must be specified in patterns with repeats")
         self.expect_value(["*"])
         repeat_section = self.stitch_sequence()
@@ -222,9 +214,6 @@ class Parser:
     # STITCH_TYPE = "k" | "p" | "yo" ;
     def stitch_type(self) -> Stitch:
         current = self._curr_token.value
-        if self._curr_token.value == "yo":    #increase
-            self._curr_st_num += 1
-            # print(f"increase found, curr_st is: {self._curr_st_num}")
         self.expect_type([TokenType.STITCH])
 
         return Stitch(current)
