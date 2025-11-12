@@ -1,4 +1,3 @@
-import re
 import unittest
 from src.backend.parser.parser import Parser, ParserError
 from src.backend.domain.model import Stitch, Repeat, Row, Part

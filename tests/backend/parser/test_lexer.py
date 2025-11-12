@@ -1,4 +1,3 @@
-import re
 import unittest
 from src.backend.parser.lexer import Lexer, LexerError, Token, TokenType
 
