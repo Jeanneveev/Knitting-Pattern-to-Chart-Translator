@@ -18,11 +18,11 @@ class Stitch:
     
     # The current dictionary of stitch abbreviations and their names and symbols
     STITCH_BY_ABBREV = {
-        "k":    {"name": "knit",            "type": "reg",  "stitches_produced": 1,  "rs": " ", "ws": "-"},
-        "p":    {"name": "purl",            "type": "reg",  "stitches_produced": 1,  "rs": "-", "ws": " "},
-        "yo":   {"name": "yarn over",       "type": "incr", "stitches_produced": 2,  "rs": "O", "ws": "O"},
-        "k2tog":{"name": "knit 2 together", "type": "decr", "stitches_produced": 1, "rs": "/", "ws": "/"},
-        "ssk":  {"name": "slip slip knit",  "type": "decr", "stitches_produced": 1, "rs": "\\", "ws": "\\"},
+        "k":    {"name": "knit",            "type": "reg",  "stitches_consumed": 1, "stitches_produced": 1,  "rs": " ", "ws": "-"},
+        "p":    {"name": "purl",            "type": "reg",  "stitches_consumed": 1, "stitches_produced": 1,  "rs": "-", "ws": " "},
+        "yo":   {"name": "yarn over",       "type": "incr", "stitches_consumed": 0, "stitches_produced": 1,  "rs": "O", "ws": "O"},
+        "k2tog":{"name": "knit 2 together", "type": "decr", "stitches_consumed": 2, "stitches_produced": 1, "rs": "/", "ws": "/"},
+        "ssk":  {"name": "slip slip knit",  "type": "decr", "stitches_consumed": 2, "stitches_produced": 1, "rs": "\\", "ws": "\\"},
     }
 
     @property
@@ -33,6 +33,10 @@ class Stitch:
     def type(self) -> StitchType:
         return StitchType(self.STITCH_BY_ABBREV[self.abbrev]["type"])
     
+    @property
+    def stitches_consumed(self) -> int:
+        return self.STITCH_BY_ABBREV[self.abbrev]["stitches_consumed"]
+
     @property
     def stitches_produced(self) -> int:
         return self.STITCH_BY_ABBREV[self.abbrev]["stitches_produced"]
@@ -120,14 +124,14 @@ class Row:
         for instruction in self.instructions:
             if isinstance(instruction, Stitch):
                 stitches.append(instruction)
-                prev_stitches_knitted += instruction.stitches_produced
+                prev_stitches_knitted += instruction.stitches_consumed
             elif isinstance(instruction, Repeat):
                 remaining_stitches = prev_row_st_count - prev_stitches_knitted
                 expanded:list[Stitch] = self._expand_repeat(instruction, remaining_stitches)
                 stitches.extend(expanded)
                 
                 for stitch in expanded:
-                    prev_stitches_knitted += stitch.stitches_produced
+                    prev_stitches_knitted += stitch.stitches_consumed
 
         expanded_row = Row(self.number, stitches)
         return expanded_row
@@ -190,9 +194,10 @@ def resolve_implicit_repeat(row:Row) -> None:
         return
 
     instrs_after = instructions[idx + 1 :]
-    stitches_after = sum(instr.stitches_produced for instr in instrs_after if isinstance(instr, Stitch))
+    stitches_after = sum(instr.stitches_consumed for instr in instrs_after if isinstance(instr, Stitch))
 
     # modify Repeat
+    # print(f"stitches after are {stitches_after}")
     repeat.stitches_after = stitches_after
     
 class Part:
@@ -237,12 +242,14 @@ class Part:
 
         for idx, row in enumerate(self.rows):
             if idx == 0:
-                row_and_stitch_count.append((row.expand(self.caston), self.caston))
+                expanded_row = row.expand(self.caston)
+                stitch_count = self.get_row_stitch_count(expanded_row, self.caston)
+                row_and_stitch_count.append((expanded_row, stitch_count))
                 continue
             
             prev_stitch_count:int = row_and_stitch_count[-1][1] # get the stitch_count previously appended
             expanded_row = row.expand(prev_stitch_count)
-            stitch_count = self.get_row_stitch_count(row, prev_stitch_count)
+            stitch_count = self.get_row_stitch_count(expanded_row, prev_stitch_count)
 
             row_and_stitch_count.append((expanded_row, stitch_count))
         
@@ -251,6 +258,13 @@ class Part:
     def get_row(self, num) -> Row:
         """Get the expanded version of a row of the pattern by its row number"""
         return self.pattern[num-1][0]
+    
+    def get_max_length(self):
+        """Get the length of the longest row in the pattern"""
+        max_len = 0
+        for row, count in self.pattern:
+            max_len = max(max_len, count)
+        return max_len
     
 class Project:
     def __init__(self, name:str, parts:list[Part]):

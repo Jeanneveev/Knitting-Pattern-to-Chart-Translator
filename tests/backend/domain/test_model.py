@@ -1,5 +1,5 @@
 import unittest
-from src.backend.domain.model import Stitch, Repeat, Row, Part, StitchType, Project, resolve_implicit_repeat
+from src.backend.domain.model import Stitch, Repeat, Row, Part, StitchType, Project, Chart, resolve_implicit_repeat
 
 class TestStitch(unittest.TestCase):
     def test_stitch_type_has_limited_values(self):
@@ -92,16 +92,29 @@ class TestRow(unittest.TestCase):
         expected_row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k"), Stitch("k")])
         self.assertEqual(expected_row, row.expand(6))
 
-    # def test_can_get_right_side_symbols_of_row(self):
-    #     row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k")])
-    #     expected = ["-", " ", "-"]
-    #     self.assertEqual()
-    # def test_cannot_get_right_side_symbols_of_row_with_repeats(self):
-    #     ...
-    # def test_can_get_wrong_side_symbols_of_row(self):
-    #     ...
-    # def test_cannot_get_wrong_side_symbols_of_row_with_repeats(self):
-    #     ...
+    def test_can_get_right_side_symbols_of_row(self):
+        row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("p")])
+        expected = [" ", "-", "-"]
+        self.assertEqual(expected, row.get_symbols_rs())
+
+    def test_cannot_get_right_side_symbols_of_row_with_repeats(self):
+        row = Row(number=1, instructions=[Repeat([Stitch("k"), Stitch("p")], 2), Stitch("p")])
+        
+        with self.assertRaises(ValueError) as err:
+            row.get_symbols_rs()
+        self.assertEqual("Cannot get symbols of rows with Repeats", str(err.exception))
+
+    def test_can_get_wrong_side_symbols_of_row(self):
+        row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("p")])
+        expected = ["-", " ", " "]
+        self.assertEqual(expected, row.get_symbols_ws())
+
+    def test_cannot_get_wrong_side_symbols_of_row_with_repeats(self):
+        row = Row(number=1, instructions=[Repeat([Stitch("k"), Stitch("p")], 2), Stitch("p")])
+        
+        with self.assertRaises(ValueError) as err:
+            row.get_symbols_ws()
+        self.assertEqual("Cannot get symbols of rows with Repeats", str(err.exception))
 
 class TestComputeStitchesAfter(unittest.TestCase):
     def test_can_insert_stitches_after_into_row_repeat(self):
@@ -143,9 +156,9 @@ class TestPart(unittest.TestCase):
 
     def test_can_get_stitch_count_of_row_with_increases(self):
         row = Row(1, [Stitch("k"), Stitch("p"), Stitch("yo"), Stitch("p"), Stitch("k")])
-        part = Part(caston=5, rows=[row])
+        part = Part(4, rows=[row])
 
-        self.assertEqual(6, part.get_row_stitch_count(row, 5))
+        self.assertEqual(5, part.get_row_stitch_count(row, 4))
 
     def test_can_get_stitch_count_of_row_with_decreases(self):
         row = Row(1, [Stitch("k"), Stitch("p"), Stitch("ssk"), Stitch("p"), Stitch("k")])
@@ -169,6 +182,38 @@ class TestPart(unittest.TestCase):
         actual = part.get_row(1)
         self.assertEqual(expected, actual, f"got Row({actual.instructions})")
 
+    def test_can_get_length_of_longest_row_in_pattern(self):
+        part = Part(4, [
+            Row(1, [Stitch("k"), Stitch("yo"), Stitch("p"), Stitch("p"), Stitch("yo"), Stitch("k")]), # 6
+            Row(2, [Stitch("k"), Stitch("yo"), Repeat([Stitch("p")]), Stitch("yo"), Stitch("k")]), # 8
+        ])
+        # print(part.pattern)
+        
+        self.assertEqual(8, part.get_max_length())
+
+
+class TestChart(unittest.TestCase):
+    def test_can_get_symbols_of_right_side_row(self):
+        row = Row(1, [Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p")])
+        part = Part(4, [row])
+        chart = Chart(part)
+
+        expected = {1: ["-", " ", "-", " "]}
+        actual = chart.get_row_symbols(1)
+
+        self.assertEqual(expected, actual)
+    
+    def test_can_get_symbols_of_wrong_side_row(self):
+        row_1 = Row(1, [Stitch("k"), Stitch("yo"), Stitch("k")])
+        row_2 = Row(2, [Stitch("k"), Stitch("k2tog"), Stitch("k")])
+        part = Part(4, [row_1, row_2])
+        chart = Chart(part)
+
+        expected = {2: ["-", "/", "-"]}
+        actual = chart.get_row_symbols(2)
+
+        self.assertEqual(expected, actual)
+    
 
 class TestProject(unittest.TestCase):
     def test_projects_must_have_name_and_one_or_more_parts(self):
