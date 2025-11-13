@@ -191,6 +191,14 @@ class TestPart(unittest.TestCase):
         
         self.assertEqual(8, part.get_max_length())
 
+    def test_can_get_length_of_longest_row_in_pattern_2(self):
+        part = Part(4, [
+            Row(1, [Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k")]),   # 4
+            Row(2, [Stitch("k"), Stitch("ssk"), Stitch("k")])               # 3
+        ])
+
+        self.assertEqual(4, part.get_max_length())
+
 
 class TestChart(unittest.TestCase):
     def test_can_get_symbols_of_right_side_row(self):
@@ -213,7 +221,39 @@ class TestChart(unittest.TestCase):
         actual = chart.get_row_symbols(2)
 
         self.assertEqual(expected, actual)
-    
+
+    def test_can_generate_1_row_chart_from_pattern(self):
+        part = Part(4, [
+            Row(1, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")])
+        ])
+        chart = Chart(part)
+
+        expected = (
+            "---+---+---+---+---+---\n"
+            "   | - | - |   |   | 1 \n"
+            "---+---+---+---+---+---"
+        )
+        actual = chart.render_grid()
+
+        self.assertEqual(expected, actual)
+
+    def test_can_generate_multi_row_chart_from_pattern(self):
+        part = Part(10, [
+            Row(1, [Repeat([Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")], 2), Stitch("k"), Stitch("k")]),
+            Row(2, [Stitch("k"), Repeat([Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")]), Stitch("k")])
+        ])
+        chart = Chart(part)
+
+        expected = (
+            "---+---+---+---+---+---+---+---+---+---+---+---\n"
+            " 2 | - | - | - |   |   | - | - |   |   | - |   \n"
+            "---+---+---+---+---+---+---+---+---+---+---+---\n"
+            "   |   |   | - | - |   |   | - | - |   |   | 1 \n"
+            "---+---+---+---+---+---+---+---+---+---+---+---"
+        )
+        actual = chart.render_grid()
+
+        self.assertEqual(expected, actual, f"expected was:\n{expected}\nactual was:\n{actual}")
 
 class TestProject(unittest.TestCase):
     def test_projects_must_have_name_and_one_or_more_parts(self):

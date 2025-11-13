@@ -238,7 +238,7 @@ class Part:
     @property
     def pattern(self):
         """Creates a list of tuples of expanded Rows and their stitch counts"""
-        row_and_stitch_count:list[tuple[int, int]] = []
+        row_and_stitch_count:list[tuple[Row, int]] = []
 
         for idx, row in enumerate(self.rows):
             if idx == 0:
@@ -266,11 +266,6 @@ class Part:
             max_len = max(max_len, count)
         return max_len
     
-class Project:
-    def __init__(self, name:str, parts:list[Part]):
-        self.name = name
-        self.parts = parts
-
 @dataclass
 class Chart:
     pattern:Part
@@ -287,7 +282,57 @@ class Chart:
             symbols.reverse()
             return {n: symbols}
         else:   #wrong-side, display normally
-            print("wrong-side")
+            # print("wrong-side")
             row = self.pattern.get_row(n)
             symbols = row.get_symbols_ws()
             return {n: symbols}
+        
+    def _build_border(self, length:int) -> str:
+        border = "---+---"
+        for _ in range(length):
+            border += "+---"
+
+        return border
+    
+    def _build_row(self, row_num:int) -> str:
+        result = "|"
+        symbols = self.get_row_symbols(row_num)[row_num]
+        
+        for symbol in symbols:
+            result += f" {symbol} |"
+
+        if row_num % 2 == 1:    #right-side, display in reverse
+            # print("right-side")
+            result = "   " + result + f" {row_num} "
+        else:               #wrong-side, display normally
+            # print("wrong-side")
+            result = f" {row_num} " + result + "   "
+
+        return result
+
+    def render_grid(self) -> str:
+        pattern = self.pattern.pattern
+        last_row = pattern[-1][0]
+
+        max_length = self.pattern.get_max_length()
+        border = self._build_border(max_length)
+        
+        inner_rows = []
+        for row, _ in pattern:
+            inner_rows.append(self._build_row(row.number) + "\n")
+            if row != last_row:    # add a horizontal line after all rows except the last one
+                inner_rows.append(border + "\n")
+        inner_rows.reverse()
+
+        inner = ""
+        for row in inner_rows:
+            inner += row
+
+        grid = border + "\n" + inner + border
+        # print(f"grid is:\n {grid}")
+        return grid
+
+class Project:
+    def __init__(self, name:str, parts:list[Part]):
+        self.name = name
+        self.parts = parts
