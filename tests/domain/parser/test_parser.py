@@ -1,6 +1,6 @@
 import unittest
-from src.backend.parser.parser import Parser, ParserError
-from src.backend.domain.model import Stitch, Repeat, Row, Part
+from src.domain.parser.parser import Parser, ParserError
+from src.domain.model.model import Stitch, Repeat, Row, Part
 
 class TestParser(unittest.TestCase):
     def test_can_create_parser(self):

@@ -16,8 +16,8 @@ STITCH_TYPE     = "k" | "p" ;
 ? newline ? : Represents a newline ("/n") or some other kind of line divider
 """
 
-from src.backend.domain.model import Stitch, Repeat, Row, Part
-from src.backend.parser.lexer import Lexer, TokenType
+from src.domain.model.model import Stitch, Repeat, Row, Part
+from src.domain.parser.lexer import Lexer, TokenType
 
 class ParserError(Exception): 
     """Exception raised for errors during the parsing process"""

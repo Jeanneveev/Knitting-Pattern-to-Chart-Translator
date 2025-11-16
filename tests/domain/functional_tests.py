@@ -1,8 +1,8 @@
-"""Tests that span across the entire backend"""
+"""Tests that span across the entire core"""
 
 import unittest
-from src.backend.parser.parser import Parser
-from src.backend.domain.model import Chart
+from src.domain.parser.parser import Parser
+from src.domain.model.model import Chart
 
 class TestBackend(unittest.TestCase):
     def test_can_translate_input_to_chart(self):

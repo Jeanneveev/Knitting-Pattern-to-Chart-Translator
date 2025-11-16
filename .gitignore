@@ -1,4 +1,5 @@
 .venv/
+src/frontend/
 
 **/__pycache__/
 **/.pytest_cache/

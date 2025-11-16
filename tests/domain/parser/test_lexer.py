@@ -1,5 +1,5 @@
 import unittest
-from src.backend.parser.lexer import Lexer, LexerError, Token, TokenType
+from src.domain.parser.lexer import Lexer, LexerError, Token, TokenType
 
 WORD = TokenType.WORD
 NUMBER = TokenType.NUMBER

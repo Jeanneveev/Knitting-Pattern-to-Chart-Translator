@@ -1,5 +1,5 @@
 import unittest
-from src.backend.domain.model import Stitch, Repeat, Row, Part, StitchType, Project, Chart, resolve_implicit_repeat
+from src.domain.model.model import Stitch, Repeat, Row, Part, StitchType, Project, Chart, resolve_implicit_repeat
 
 class TestStitch(unittest.TestCase):
     def test_stitch_type_has_limited_values(self):
