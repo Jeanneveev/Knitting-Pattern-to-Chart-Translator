@@ -5,7 +5,7 @@ Knitting_Chart_Maker/
 |   |-- application/    # Application services layer
 |   |-- domain/         # Domain layer
 |   |   |-- model/          # Domain model entities and value objects
-|   |   |-- parser/         # Logic and entities of the parser
+|   |   |-- parser/         # Parser logic and entities
 |   |-- ports/          # Ports layer
 |   |   |-- logger/         # Logger port
 |   |-- routers/        # API routers
