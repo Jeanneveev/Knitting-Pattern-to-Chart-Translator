@@ -13,3 +13,9 @@ class PatternService():
 
         self.chart_port.latest_chart = chart
         return chart
+    
+    def generate_key(self, input:str) -> str:
+        model = self.parser_port.parse(input)
+        key:str = self.chart_port.render_key(model)
+
+        return key

@@ -19,5 +19,24 @@ class TestPatternService(unittest.TestCase):
 
         self.assertEqual(expected, actual)
 
+    def test_can_generate_key(self):
+        parser_adapter = ParserAdapter()
+        chart_adapter = ChartAdapter()
+        pattern_service = PatternService(parser_adapter, chart_adapter)
+        pattern = "k2, p2"
+
+        expected = (
+            "+------+--------+-----------+-----------+\n"
+            "| Name | Abbrev | RS Symbol | WS Symbol |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Knit |    k   |           |     -     |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Purl |    p   |     -     |           |\n"
+            "+------+--------+-----------+-----------+\n"
+        )
+        actual = pattern_service.generate_key(input=pattern)
+
+        self.assertEqual(expected, actual)
+
 if __name__ == "__main__":
     unittest.main()

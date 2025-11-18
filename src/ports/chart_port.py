@@ -8,3 +8,7 @@ class ChartPort(ABC):
     @abstractmethod
     def render_chart(self, model:Part) -> str:
         pass
+
+    @abstractmethod
+    def render_key(self, model:Part) -> str:
+        pass

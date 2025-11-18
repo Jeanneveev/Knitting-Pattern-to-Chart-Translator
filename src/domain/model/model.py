@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from ordered_set import OrderedSet
 from typing import List, Union
 
 class StitchType(Enum):
@@ -236,7 +237,7 @@ class Part:
         return count
 
     @property
-    def pattern(self):
+    def pattern(self) -> list[tuple[Row, int]]:
         """Creates a list of tuples of expanded Rows and their stitch counts"""
         row_and_stitch_count:list[tuple[Row, int]] = []
 
@@ -259,12 +260,31 @@ class Part:
         """Get the expanded version of a row of the pattern by its row number"""
         return self.pattern[num-1][0]
     
-    def get_max_length(self):
+    def get_max_length(self) -> int:
         """Get the length of the longest row in the pattern"""
         max_len = 0
         for row, count in self.pattern:
             max_len = max(max_len, count)
         return max_len
+    
+    @property
+    def stitches_used(self) -> list[str]:
+        used = OrderedSet()
+
+        for row in self.rows:
+            for instruction in row.instructions:
+                if isinstance(instruction, Stitch):
+                    used.add(instruction.abbrev)
+                if isinstance(instruction, Repeat):
+                    for element in instruction.elements:
+                        if isinstance(element, Stitch):
+                            used.add(element.abbrev)
+                        if isinstance(element, Repeat): # nested Repeat, has to have all Stitches
+                            for el in element.elements:
+                                used.add(el.abbrev)
+        
+        return list(used)
+
     
 @dataclass
 class Chart:
@@ -331,6 +351,79 @@ class Chart:
         grid = border + "\n" + inner + border
         # print(f"grid is:\n {grid}")
         return grid
+    
+    def _get_column_width(self, contents:list[str]) -> int:
+        """Get the width (length) of the longest string in the column, +2 for padding"""
+        max_width = 0
+        for string in contents:
+            max_width = max(max_width, len(string))
+
+        return max_width + 2
+    
+    def _get_padded_column(self, column_contents, column_width) -> list[str]:
+        padded_contents = []
+        for content in column_contents:
+            text_width = len(content)
+            if (column_width - text_width) % 2 == 0:
+                space_width = int((column_width - text_width) / 2)
+                padding = " " * space_width
+                padded_contents.append(padding + content + padding) 
+            else:
+                space_width = int((column_width - text_width - 1) / 2)
+                padding_left = " " * (space_width + 1)
+                padding_right = " " * space_width
+                padded_contents.append(padding_left + content + padding_right)
+
+        return padded_contents
+    
+    def render_key(self) -> str:
+        key = ""
+        names = []
+        right_sides = []
+        wrong_sides = []
+        abbreviations = self.pattern.stitches_used
+        for stitch in abbreviations:
+            stitch_info = Stitch.STITCH_BY_ABBREV[stitch]
+            names.append(stitch_info.get("name").title())
+            right_sides.append(stitch_info.get("rs"))
+            wrong_sides.append(stitch_info.get("ws"))
+        
+        names.insert(0, "Name")
+        abbreviations.insert(0, "Abbrev")
+        right_sides.insert(0, "RS Symbol")
+        wrong_sides.insert(0, "WS Symbol")
+        
+        name_col_width = self._get_column_width(names)
+        abbrev_col_width = self._get_column_width(abbreviations)
+        rs_col_width = self._get_column_width(right_sides)
+        ws_col_width = self._get_column_width(wrong_sides)
+
+        names_padded = self._get_padded_column(names, name_col_width)
+        abbrev_padded = self._get_padded_column(abbreviations, abbrev_col_width)
+        rs_padded = self._get_padded_column(right_sides, rs_col_width)
+        ws_padded = self._get_padded_column(wrong_sides, ws_col_width)
+
+        border = (
+            "+" + ("-" * name_col_width) +
+            "+" + ("-" * abbrev_col_width) +
+            "+" + ("-" * rs_col_width) +
+            "+" + ("-" * ws_col_width) +
+            "+" + "\n"
+        )
+
+        key += border
+        for idx in range(len(abbreviations)):
+            key += (
+                "|" + names_padded[idx] +
+                "|" + abbrev_padded[idx] +
+                "|" + rs_padded[idx] +
+                "|" + ws_padded[idx] +
+                "|" + "\n"
+            )
+            key += border
+
+        return key
+        
 
 class Project:
     def __init__(self, name:str, parts:list[Part]):

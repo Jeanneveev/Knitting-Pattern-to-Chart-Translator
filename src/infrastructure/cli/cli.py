@@ -10,18 +10,21 @@ def cli():
     pass
 
 @click.command(name="parse")
+@click.option("--chart_only", is_flag=True, help="Display only the knitting chart")
 @click.argument("pattern", type=str)
-def parse(pattern:str):
+def parse(chart_only, pattern:str):
     """Parse pattern text"""
     parser_adapter = ParserAdapter()
     chart_adapter = ChartAdapter()
     service = PatternService(parser_adapter, chart_adapter)
     cli_adapter = CLIAdapter(pattern_service=service)
 
-    output = cli_adapter.run(pattern)
+    if chart_only:
+        output = cli_adapter.chart_only(pattern)
+    else:
+        output = cli_adapter.run(pattern)
 
     click.echo(output)
-
 cli.add_command(parse)
 
 if __name__ == "__main__":

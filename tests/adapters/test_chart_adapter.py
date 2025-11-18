@@ -24,5 +24,23 @@ class TestChartAdapter(unittest.TestCase):
             ChartAdapter().render_chart(invalid_model)
         self.assertEqual("'str' object has no attribute 'pattern'", str(err.exception))
 
+    def test_can_generate_key_from_model(self):
+        model = Part(9, [
+            Row(1, [Repeat([Stitch("k"), Stitch("p"), Stitch("k")], num_times=3)])
+        ])
+
+        expected=(
+            "+------+--------+-----------+-----------+\n"
+            "| Name | Abbrev | RS Symbol | WS Symbol |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Knit |    k   |           |     -     |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Purl |    p   |     -     |           |\n"
+            "+------+--------+-----------+-----------+\n"
+        )
+        actual = ChartAdapter().render_key(model)
+
+        self.assertEqual(expected, actual)
+
 if __name__ == "__main__":
     unittest.main()

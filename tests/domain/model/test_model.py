@@ -199,6 +199,30 @@ class TestPart(unittest.TestCase):
 
         self.assertEqual(4, part.get_max_length())
 
+    def test_can_get_used_stitches_in_pattern_without_repeats(self):
+        part = Part(4, [
+            Row(1, [Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k")]),
+            Row(2, [Stitch("k"), Stitch("ssk"), Stitch("k")])
+        ])
+
+        self.assertEqual(["k", "ssk"], part.stitches_used)
+
+    def test_can_get_used_stitches_in_pattern_with_repeats(self):
+        part = Part(6, [
+            Row(1, [Stitch("k"), Repeat([Stitch("p"), Stitch("k")], num_times=2), Stitch("k")]),
+            Row(2, [Stitch("k"), Stitch("ssk"), Stitch("ssk"), Stitch("k")])
+        ])
+
+        self.assertEqual(["k", "p", "ssk"], part.stitches_used)
+
+    def test_can_get_used_stitches_in_pattern_with_nested_repeats(self):
+        part = Part(6, [
+            Row(1, [Stitch("k"), Repeat([Stitch("k"), Repeat([Stitch("p")], num_times=2)], num_times=2), Stitch("k")]),
+            Row(2, [Stitch("k"), Stitch("ssk"), Stitch("ssk"), Stitch("k")])
+        ])
+
+        self.assertEqual(["k", "p", "ssk"], part.stitches_used)
+
 
 class TestChart(unittest.TestCase):
     def test_can_get_symbols_of_right_side_row(self):
@@ -254,6 +278,26 @@ class TestChart(unittest.TestCase):
         actual = chart.render_grid()
 
         self.assertEqual(expected, actual, f"expected was:\n{expected}\nactual was:\n{actual}")
+
+    def test_can_generate_key_from_chart(self):
+        part = Part(10, [
+            Row(1, [Repeat([Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")], 2), Stitch("k"), Stitch("k")]),
+            Row(2, [Stitch("k"), Repeat([Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")]), Stitch("k")])
+        ])
+        chart = Chart(part)
+
+        expected = (
+            "+------+--------+-----------+-----------+\n"
+            "| Name | Abbrev | RS Symbol | WS Symbol |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Knit |    k   |           |     -     |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Purl |    p   |     -     |           |\n"
+            "+------+--------+-----------+-----------+\n"
+        )
+        actual = chart.render_key()
+
+        self.assertEqual(expected, actual)
 
 class TestProject(unittest.TestCase):
     def test_projects_must_have_name_and_one_or_more_parts(self):

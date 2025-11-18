@@ -13,7 +13,9 @@ setup(
         ],
     },
     install_requires=[
-        "setuptools"
+        "setuptools",
+        "click",
+        "ordered-set"
     ],
     python_requires=">=3.1"
 )
