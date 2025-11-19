@@ -11,11 +11,6 @@ class StitchType(Enum):
 @dataclass(frozen=True)
 class Stitch:
     abbrev: str
-
-    def __post_init__(self):
-        # error checking
-        if not isinstance(self.abbrev, str):
-            raise TypeError(f"Stitch abbrev must be type str, got type {type(self.abbrev)}")
     
     # The current dictionary of stitch abbreviations and their names and symbols
     STITCH_BY_ABBREV = {
@@ -58,14 +53,6 @@ class Repeat:
     has_num_times = False   # placeholder for post_init
 
     def __post_init__(self):
-        # error checking types
-        if not isinstance(self.elements, list):
-            raise TypeError(f"Repeat elements must be type list, got type {type(self.elements)}")
-        if not all(isinstance(el, (Stitch, Repeat)) for el in self.elements):
-            raise TypeError(f"Items in Repeat elements must be of type Stitch or Repeat")
-        if not isinstance(self.stitches_after, (type(None), int)):
-            raise TypeError(f"Repeat stitches_after must be type int or None, got type {type(self.stitches_after)}")
-
         # set the actual value of has_num_times
         self.has_num_times = True if self.num_times is not None else False
 
@@ -86,14 +73,6 @@ class Repeat:
 
 class Row:
     def __init__(self, number:int, instructions:list[Stitch | Repeat]):
-        # error checking types
-        if not isinstance(number, int):
-            raise TypeError(f"Row number must be type int, got type {type(number)}")
-        if not isinstance(instructions, list):
-            raise TypeError(f"Row instructions must be type int, got type {type(instructions)}")
-        if not all(isinstance(instruction, (Stitch, Repeat)) for instruction in instructions):
-            raise TypeError(f"Items in Row instructions must be of type Stitch or Repeat")
-        
         # Check that, if there is an implicit repeat in the row, it is the last one
         repeats = [instruction for instruction in instructions if isinstance(instruction, Repeat)]
         if len(repeats) != 0:
@@ -204,12 +183,6 @@ def resolve_implicit_repeat(row:Row) -> None:
 class Part:
     def __init__(self, caston:int, rows:list[Row], name:str="main"):
         # error checking types
-        if not isinstance(caston, int):
-            raise TypeError(f"Part caston must be type int, got type {type(caston)}")
-        if not isinstance(rows, list):
-            raise TypeError(f"Part rows must be type list, got type {type(rows)}")
-        if not all(isinstance(row, Row) for row in rows):
-            raise TypeError(f"Items in Part rows must be of type Row")
         if not isinstance(name, str):
             raise TypeError(f"Part name must be type str, got type {type(name)}")
 

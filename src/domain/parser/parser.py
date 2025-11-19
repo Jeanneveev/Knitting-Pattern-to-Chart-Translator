@@ -16,7 +16,7 @@ STITCH_TYPE     = "k" | "p" ;
 ? newline ? : Represents a newline ("/n") or some other kind of line divider
 """
 
-from src.domain.model.model import Stitch, Repeat, Row, Part
+from src.domain.ast.nodes import StitchNode, RepeatNode, RowNode, PartNode
 from src.domain.parser.lexer import Lexer, TokenType
 
 class ParserError(Exception): 
@@ -96,13 +96,13 @@ class Parser:
     ## PARSING METHODS
 
     # start = pattern , ? end of input ? ;
-    def start(self) -> Part:
+    def start(self) -> PartNode:
         result = self.pattern()
         self.expect_type([TokenType.EOI])
         return result
 
     # pattern = [cast_on] , ( stitch_sequence | [ row , { ? newline ? , row } ] ) ;
-    def pattern(self) -> Part:
+    def pattern(self) -> PartNode:
         caston = None
 
         if self._curr_token.value == "cast":
@@ -115,7 +115,7 @@ class Parser:
             instructions = self.stitch_sequence()
             if caston == None:
                 caston = len(instructions)
-            return Part(caston=caston, rows=[Row(number=1, instructions=instructions)])
+            return PartNode(caston=caston, rows=[RowNode(number=1, instructions=instructions)])
         
         result = [self.row()]
         while self._curr_token.type == TokenType.NEWLINE:
@@ -124,10 +124,10 @@ class Parser:
 
         if (len(result) == 1) and (caston == None):     # One row, labeled, but w/o caston
             # print("No caston given")
-            return Part(caston=len(result[0].instructions), rows=result)
+            return PartNode(caston=len(result[0].instructions), rows=result)
         
         # print(f"caston given. caston is {caston}")
-        return Part(caston=caston, rows=result)         # Any number of rows, labeled, w/ caston
+        return PartNode(caston=caston, rows=result)         # Any number of rows, labeled, w/ caston
     
     # cast_on = "cast on", ? integer ? , "stitches" | "st" | "sts"
     def cast_on(self):
@@ -145,7 +145,7 @@ class Parser:
         return caston_num
     
     # row = "row" , ? integer ? , ":" , stitch_sequence ;
-    def row(self) -> Row:
+    def row(self) -> RowNode:
         self.expect_value(["row"])
         if not self._curr_token.type == TokenType.NUMBER:
             wrong_token = f'"{self._curr_token}"' 
@@ -156,10 +156,10 @@ class Parser:
         row_num = int(self._curr_token.value)
         self.advance()  # move onto the next token
         self.expect_value([":"])
-        return Row(row_num, self.stitch_sequence())
+        return RowNode(row_num, self.stitch_sequence())
     
     # stitch_sequence = = repeat | stitch, {"," , repeat | stitch } ;
-    def stitch_sequence(self) -> list[Stitch]:
+    def stitch_sequence(self) -> list[StitchNode]:
         result = []
         if self._curr_token.value == "*": # repeat
             # print("repeat encountered")
@@ -178,15 +178,13 @@ class Parser:
         return result
     
     # repeat = "*" , stitch_sequence , "*" , [";" , "repeat" , "from" , "*" , "to" , "*" , ? integer ? , "times" , ","] ;
-    def repeat(self) -> Repeat:
-        if self._caston_num is None:
-            raise ParserError("The number of stitches cast-on must be specified in patterns with repeats")
+    def repeat(self) -> RepeatNode:
         self.expect_value(["*"])
         repeat_section = self.stitch_sequence()
         # print(f"repeat section is: {repeat_section}")
         self.expect_value(["*"])
         if self._curr_token.value != ";":
-            return Repeat(repeat_section)
+            return RepeatNode(repeat_section)
         # print("repeat number specified")
         self.expect_series([[";"], ["repeat"], ["from"], ["*"], ["to"], ["*"]])
 
@@ -195,10 +193,10 @@ class Parser:
         num_repeats = int(self._curr_token.value)
         self.advance()
         self.expect_value(["times"])
-        return Repeat(repeat_section, num_times=num_repeats)
+        return RepeatNode(repeat_section, num_times=num_repeats)
 
     # stitch = STITCH_TYPE , ? integer ? ;
-    def stitch(self) -> list[Stitch]:
+    def stitch(self) -> list[StitchNode]:
         result = self.stitch_type()
         if not self._curr_token.type == TokenType.NUMBER:  # just one stitch (e.g.: "k")
             return [result]
@@ -208,9 +206,9 @@ class Parser:
         return [result] * multiplier
 
     # STITCH_TYPE = "k" | "p" | "yo" ;
-    def stitch_type(self) -> Stitch:
+    def stitch_type(self) -> StitchNode:
         current = self._curr_token.value
         self.expect_type([TokenType.STITCH])
 
-        return Stitch(current)
+        return StitchNode(current)
 

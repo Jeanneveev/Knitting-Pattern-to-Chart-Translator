@@ -50,7 +50,7 @@ class Lexer:
     def __init__(self, text:str|None):
         """Initializes the lexer instance and gets the first
         position of the input text"""
-        self.text = text
+        self.text = text.lower()
         self.pos = 0
         self._curr_char = text[0]
 
