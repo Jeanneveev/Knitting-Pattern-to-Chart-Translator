@@ -182,6 +182,12 @@ class TestPart(unittest.TestCase):
         actual = part.get_row(1)
         self.assertEqual(expected, actual, f"got Row({actual.instructions})")
 
+    def test_can_get_row_length_by_number(self):
+        row = Row(1, [Repeat([Stitch("p"), Stitch("k")], 4)])
+        part = Part(8, [row])
+
+        self.assertEqual(8, part.get_row_length(1))
+
     def test_can_get_length_of_longest_row_in_pattern(self):
         part = Part(4, [
             Row(1, [Stitch("k"), Stitch("yo"), Stitch("p"), Stitch("p"), Stitch("yo"), Stitch("k")]), # 6
@@ -279,6 +285,36 @@ class TestChart(unittest.TestCase):
 
         self.assertEqual(expected, actual, f"expected was:\n{expected}\nactual was:\n{actual}")
 
+    # def test_can_pad_unequal_rows(self):
+    #     self.maxDiff = None
+        
+    #     # row 1: kfb, k2, kfb
+    #     # row 2: p6
+    #     # row 3: kfb, k4, kfb
+    #     # row 4: p8
+    #     part = Part(2, [
+    #         Row(1, [Stitch("kfb"), Stitch("k"), Stitch("k"), Stitch("kfb")]),
+    #         Row(2, [Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")]),
+    #         Row(3, [Stitch("kfb"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("kfb")]),
+    #         Row(4, [Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")])
+    #     ])
+    #     chart = Chart(part)
+
+    #     expected = (
+    #         "---+---+---+---+---+---+---+---+---+---\n"
+    #         " 4 |   |   |   |   |   |   |   |   |   \n"
+    #         "---+---+---+---+---+---+---+---+---+---\n"
+    #         "   | X | Y |   |   |   |   | Y | X | 3 \n"
+    #         "---+---+---+---+---+---+---+---+---+---\n"
+    #         " 2 | X |   |   |   |   |   |   | X |   \n"
+    #         "---+---+---+---+---+---+---+---+---+---\n"
+    #         "   | X | X | Y |   |   | Y | X | x | 1 \n"
+    #         "---+---+---+---+---+---+---+---+---+---\n"
+    #     )
+    #     actual = chart.render_grid()
+
+    #     self.assertEqual(expected, actual)
+
     def test_can_generate_key_from_chart(self):
         part = Part(10, [
             Row(1, [Repeat([Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")], 2), Stitch("k"), Stitch("k")]),
@@ -298,6 +334,7 @@ class TestChart(unittest.TestCase):
         actual = chart.render_key()
 
         self.assertEqual(expected, actual)
+
 
 class TestProject(unittest.TestCase):
     def test_projects_must_have_name_and_one_or_more_parts(self):

@@ -19,11 +19,12 @@ class Stitch:
     
     # The current dictionary of stitch abbreviations and their names and symbols
     STITCH_BY_ABBREV = {
-        "k":    {"name": "knit",            "type": "reg",  "stitches_consumed": 1, "stitches_produced": 1,  "rs": " ", "ws": "-"},
-        "p":    {"name": "purl",            "type": "reg",  "stitches_consumed": 1, "stitches_produced": 1,  "rs": "-", "ws": " "},
-        "yo":   {"name": "yarn over",       "type": "incr", "stitches_consumed": 0, "stitches_produced": 1,  "rs": "O", "ws": "O"},
-        "k2tog":{"name": "knit 2 together", "type": "decr", "stitches_consumed": 2, "stitches_produced": 1, "rs": "/", "ws": "/"},
-        "ssk":  {"name": "slip slip knit",  "type": "decr", "stitches_consumed": 2, "stitches_produced": 1, "rs": "\\", "ws": "\\"},
+        "k":    {"name": "knit",                   "type": "reg",  "stitches_consumed": 1, "stitches_produced": 1, "rs": " ", "ws": "-"},
+        "p":    {"name": "purl",                   "type": "reg",  "stitches_consumed": 1, "stitches_produced": 1, "rs": "-", "ws": " "},
+        "yo":   {"name": "yarn over",              "type": "incr", "stitches_consumed": 0, "stitches_produced": 1, "rs": "O", "ws": "O"},
+        "kfb":  {"name": "knit in front and back", "type": "incr", "stitches_consumed": 1, "stitches_produced": 2, "rs": "Y", "ws": "Y"},
+        "k2tog":{"name": "knit 2 together",        "type": "decr", "stitches_consumed": 2, "stitches_produced": 1, "rs": "/", "ws": "/"},
+        "ssk":  {"name": "slip slip knit",         "type": "decr", "stitches_consumed": 2, "stitches_produced": 1, "rs": "\\", "ws": "\\"},
     }
 
     @property
@@ -230,35 +231,40 @@ class Part:
         if any(isinstance(instruction, Repeat) for instruction in row.instructions):
             row = row.expand(prev_row_st_count)
 
-        count = 0
+        # NOTE: The stitch count of a row is always equal to that of the previous row unless there are increases or decreases
+        count = prev_row_st_count
         for stitch in row.instructions:
-            count += stitch.stitches_produced
+            count += (stitch.stitches_produced - stitch.stitches_consumed)
 
         return count
 
     @property
-    def pattern(self) -> list[tuple[Row, int]]:
+    def pattern(self) -> list[tuple[Row, int, int]]:
         """Creates a list of tuples of expanded Rows and their stitch counts"""
-        row_and_stitch_count:list[tuple[Row, int]] = []
+        row_and_stitch_count:list[tuple[Row, int, int]] = []
 
         for idx, row in enumerate(self.rows):
             if idx == 0:
                 expanded_row = row.expand(self.caston)
-                stitch_count = self.get_row_stitch_count(expanded_row, self.caston)
-                row_and_stitch_count.append((expanded_row, stitch_count))
+                row_end_stitch_count = self.get_row_stitch_count(expanded_row, self.caston)
+                row_and_stitch_count.append((expanded_row, row_end_stitch_count))
                 continue
             
             prev_stitch_count:int = row_and_stitch_count[-1][1] # get the stitch_count previously appended
             expanded_row = row.expand(prev_stitch_count)
-            stitch_count = self.get_row_stitch_count(expanded_row, prev_stitch_count)
+            row_end_stitch_count = self.get_row_stitch_count(expanded_row, prev_stitch_count)
 
-            row_and_stitch_count.append((expanded_row, stitch_count))
+            row_and_stitch_count.append((expanded_row, row_end_stitch_count))
         
         return row_and_stitch_count
             
     def get_row(self, num) -> Row:
         """Get the expanded version of a row of the pattern by its row number"""
         return self.pattern[num-1][0]
+    
+    def get_row_length(self, num) -> int:
+        """Get the length of the (expanded) row"""
+        return self.pattern[num-1][1]
     
     def get_max_length(self) -> int:
         """Get the length of the longest row in the pattern"""
@@ -284,7 +290,6 @@ class Part:
                                 used.add(el.abbrev)
         
         return list(used)
-
     
 @dataclass
 class Chart:
@@ -307,17 +312,31 @@ class Chart:
             symbols = row.get_symbols_ws()
             return {n: symbols}
         
-    def _build_border(self, length:int) -> str:
+    def _build_chart_border(self, length:int) -> str:
         border = "---+---"
         for _ in range(length):
             border += "+---"
 
         return border
     
-    def _build_row(self, row_num:int) -> str:
+    def _build_chart_row(self, row_num:int) -> str:
+        max_length = self.pattern.get_max_length()
+        row_length = self.pattern.get_row_length(row_num)
+
+        stitch_symbols:list[str] = self.get_row_symbols(row_num)[row_num]
+        symbols = []
+        if row_length < max_length:
+            # add padding
+            difference = max_length - row_length
+            print(f"padding needed on row {row_num}. The difference is: {difference}")
+            if difference % 2 == 1: # TODO: Should probably update later
+                symbols = stitch_symbols + ["X" for _ in range(difference)]
+            else:
+                symbols = ["X" for _ in range(int(difference / 2))] + stitch_symbols + ["X" for _ in range(int(difference / 2))]
+        else:
+            symbols = stitch_symbols
+
         result = "|"
-        symbols = self.get_row_symbols(row_num)[row_num]
-        
         for symbol in symbols:
             result += f" {symbol} |"
 
@@ -335,11 +354,12 @@ class Chart:
         last_row = pattern[-1][0]
 
         max_length = self.pattern.get_max_length()
-        border = self._build_border(max_length)
+        border = self._build_chart_border(max_length)
         
         inner_rows = []
-        for row, _ in pattern:
-            inner_rows.append(self._build_row(row.number) + "\n")
+        for row, length in pattern:
+            new_row = self._build_chart_row(row.number) + "\n"
+            inner_rows.append(new_row)
             if row != last_row:    # add a horizontal line after all rows except the last one
                 inner_rows.append(border + "\n")
         inner_rows.reverse()
@@ -352,6 +372,7 @@ class Chart:
         # print(f"grid is:\n {grid}")
         return grid
     
+    ## KEY
     def _get_column_width(self, contents:list[str]) -> int:
         """Get the width (length) of the longest string in the column, +2 for padding"""
         max_width = 0
