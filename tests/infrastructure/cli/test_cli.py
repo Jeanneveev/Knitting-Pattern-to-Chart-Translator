@@ -17,7 +17,27 @@ class TestCLIAdapter(unittest.TestCase):
             "Chart:\n"
             "---+---+---+---+---+---\n"
             "   |   | - | - |   | 1 \n"
-            "---+---+---+---+---+---"
+            "---+---+---+---+---+---\n"
+        )
+
+        self.assertEqual(expected, actual)
+
+    def test_can_generate_key_from_adapter(self):
+        parser_adapter = ParserAdapter()
+        chart_adapter = ChartAdapter()
+        service = PatternService(parser_adapter, chart_adapter)
+        cli_adapter = CLIAdapter(pattern_service=service)
+
+        actual = cli_adapter.key_only("k, p2, k")
+        expected = (
+            "Key:\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Name | Abbrev | RS Symbol | WS Symbol |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Knit |    k   |           |     -     |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Purl |    p   |     -     |           |\n"
+            "+------+--------+-----------+-----------+\n"
         )
 
         self.assertEqual(expected, actual)
@@ -68,9 +88,31 @@ class TestCLI(unittest.TestCase):
             "Chart:\n"
             "---+---+---+---+---\n"
             "   |   | - |   | 1 \n"
-            "---+---+---+---+---"
+            "---+---+---+---+---\n"
         )
-        actual_output = output.stdout.strip()
+        actual_output = output.stdout.strip()+"\n"  # adding back stripped trailing newline
+        self.assertEqual(expected_output, actual_output)
+
+    def test_can_generate_key_from_adapter(self):
+        output = subprocess.run(
+            ["python3", "-m", "src.infrastructure.cli.cli", "parse", "--key_only", "k, yo, k"],
+            capture_output=True,
+            text=True
+        )
+
+        self.assertEqual(0, output.returncode)
+        expected_output = (
+            "Key:\n"
+            "+-----------+--------+-----------+-----------+\n"
+            "|    Name   | Abbrev | RS Symbol | WS Symbol |\n"
+            "+-----------+--------+-----------+-----------+\n"
+            "|    Knit   |    k   |           |     -     |\n"
+            "+-----------+--------+-----------+-----------+\n"
+            "| Yarn Over |   yo   |     O     |     O     |\n"
+            "+-----------+--------+-----------+-----------+\n"
+        )
+
+        actual_output = output.stdout.strip()+"\n"
         self.assertEqual(expected_output, actual_output)
 
     def test_can_generate_ascii_chart_and_key_from_cli(self):
@@ -98,7 +140,7 @@ class TestCLI(unittest.TestCase):
             "| Purl |    p   |     -     |           |\n"
             "+------+--------+-----------+-----------+\n"
         )
-        actual_output = output.stdout.strip()+"\n"  # NOTE: .strip() strips trailing newline
+        actual_output = output.stdout.strip()+"\n"
         self.assertEqual(expected_output, actual_output)
 
 class TestCLIPackage(unittest.TestCase):

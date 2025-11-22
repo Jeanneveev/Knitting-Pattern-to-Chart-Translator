@@ -34,6 +34,8 @@ class TokenType(Enum):
     NUMBER = "number"
     SYMBOL = "symbol"
     NEWLINE = "newline"
+    REPEAT_START = "repeat start"
+    REPEAT_END = "repeat end"
     
     STITCH = "stitch"
     EOI = "? end of input ?"
@@ -50,7 +52,7 @@ class Lexer:
     def __init__(self, text:str|None):
         """Initializes the lexer instance and gets the first
         position of the input text"""
-        self.text = text
+        self.text = text.lower()
         self.pos = 0
         self._curr_char = text[0]
 
@@ -70,6 +72,7 @@ class Lexer:
     
     def scan(self) -> list[Token]:
         """Read the given text and break it down into primitive tokens"""
+        seen_times = 0
         primitive_tokens = []
         while self.pos < len(self.text):
             # print(f"char is {self._curr_char}")
@@ -96,7 +99,18 @@ class Lexer:
                 primitive_tokens.append(self._tokenize_primitive_number())
                 continue
 
-            if self._curr_char in [',', '*', ':', ';']:
+            # scan repeats
+            # if (self._curr_char == '(') or (self._curr_char == '*' and seen_times % 2 == 0):
+            #     seen_times += 1
+            #     primitive_tokens.append(Token(TokenType.REPEAT_START, self._curr_char))
+            #     continue
+
+            # if (self._curr_char == ')') or (self._curr_char == '*' and seen_times % 2 == 1):
+            #     seen_times += 1
+            #     primitive_tokens.append(Token(TokenType.REPEAT_END, self._curr_char))
+            #     continue
+
+            if self._curr_char in [',', ':', '*', ';']:
                 primitive_tokens.append(Token(TokenType.SYMBOL, self._curr_char))
                 self.advance()
                 continue

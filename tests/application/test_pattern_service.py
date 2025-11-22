@@ -13,7 +13,7 @@ class TestPatternService(unittest.TestCase):
         expected = (
             "---+---+---+---+---+---\n"
             "   | - | - |   |   | 1 \n"
-            "---+---+---+---+---+---"
+            "---+---+---+---+---+---\n"
         )
         actual = pattern_service.generate_chart(input=pattern)
 
