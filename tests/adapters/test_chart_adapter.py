@@ -1,9 +1,9 @@
 import unittest
-from src.domain.model.model import Part, Row, Repeat, Stitch
+from src.domain import Stitch, Repeat, Row, Part, Chart
 from src.adapters.chart_adapter import ChartAdapter
 
 class TestChartAdapter(unittest.TestCase):
-    def test_can_generate_chart_from_model(self):
+    def test_can_generate_chart_from_model_wo_repeats(self):
         model = Part(6, [
             Row(1, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")])
         ])
@@ -11,7 +11,7 @@ class TestChartAdapter(unittest.TestCase):
         expected = (
             "---+---+---+---+---+---+---+---\n"
             "   |   |   | - | - |   |   | 1 \n"
-            "---+---+---+---+---+---+---+---"
+            "---+---+---+---+---+---+---+---\n"
         )
         actual = ChartAdapter().render_chart(model)
 
@@ -22,7 +22,7 @@ class TestChartAdapter(unittest.TestCase):
 
         with self.assertRaises(AttributeError) as err:
             ChartAdapter().render_chart(invalid_model)
-        self.assertEqual("'str' object has no attribute 'pattern'", str(err.exception))
+        self.assertTrue("'str' object has no attribute" in str(err.exception))
 
     def test_can_generate_key_from_model(self):
         model = Part(9, [

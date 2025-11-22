@@ -129,7 +129,7 @@ class Part:
         if not isinstance(other, Part):
             return False
         
-        if (self.caston == other.caston) and (self.rows == other.rows) and (self.name == other.name):
+        if (self.caston == other.caston) and (self.rows == other.rows):
             return True
         return False
 

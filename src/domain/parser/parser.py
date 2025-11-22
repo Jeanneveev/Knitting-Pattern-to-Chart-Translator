@@ -8,7 +8,7 @@ pattern         = [cast_on] , ( stitch_sequence | [ row , { ? newline ? , row } 
 cast_on         = "cast on", ? integer ? , "stitches" | "st" | "sts" ;
 row             = "row" , ? integer ? ":" , stitch_sequence ;
 stitch_sequence = repeat | stitch , {"," , repeat | stitch } ;
-repeat          = "*" , stitch_sequence , "*" , [";" , "repeat" , "from" , "*" , "to" , "*" , ? integer ? , "times" , ","] ;
+repeat          = "*" , stitch_sequence , "*" , [";" , "repeat" , "from" , "*" , "to" , "*" , ? integer ? , "times"] ;
 stitch          = STITCH_TYPE , ? integer ? ;
 STITCH_TYPE     = "k" | "p" ;
 
@@ -177,13 +177,15 @@ class Parser:
                 result.extend(self.stitch())
         return result
     
-    # repeat = "*" , stitch_sequence , "*" , [";" , "repeat" , "from" , "*" , "to" , "*" , ? integer ? , "times" , ","] ;
+    # repeat = "*" , stitch_sequence , "*" , [";" , "repeat" , "from" , "*" , "to" , "*" , ? integer ? , "times"] ;
     def repeat(self) -> RepeatNode:
         self.expect_value(["*"])
         repeat_section = self.stitch_sequence()
         # print(f"repeat section is: {repeat_section}")
         self.expect_value(["*"])
+        # print("repeat section end")
         if self._curr_token.value != ";":
+            # print("repeat ended")
             return RepeatNode(repeat_section)
         # print("repeat number specified")
         self.expect_series([[";"], ["repeat"], ["from"], ["*"], ["to"], ["*"]])

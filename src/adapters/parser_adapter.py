@@ -1,8 +1,9 @@
 from src.ports.parser_port import ParserPort
-from src.domain.model.model import Chart
-from src.domain.parser.parser import Parser
+from src.domain import Part, Parser, ASTtoModelTranslator
 
 class ParserAdapter(ParserPort):
-    def parse(self, pattern:str) -> Chart:
+    def parse(self, pattern:str) -> Part:
         parser = Parser(pattern)
-        return parser.start()
+        ast = parser.start()
+        model = ASTtoModelTranslator().translate_ast(ast)
+        return model
