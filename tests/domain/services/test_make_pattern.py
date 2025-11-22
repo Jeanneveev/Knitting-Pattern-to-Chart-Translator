@@ -44,7 +44,7 @@ class TestExpandedRow(unittest.TestCase):
         self.assertEqual(expected, row.get_symbols_ws())
 
 class TestBuildExpandedRow(unittest.TestCase):
-    def test_can_compute_stitches_after_repeat(self):
+    def test_can_compute_stitches_after_implicit_repeat_with_only_stitches_after(self):
         row = Row(number=1, instructions=[
             Stitch("k"), Repeat([Stitch("p"), Stitch("k")], num_times=2), Stitch("k"),
             Repeat([Stitch("p"), Stitch("k")]), Stitch("k"), Stitch("k")
@@ -53,7 +53,27 @@ class TestBuildExpandedRow(unittest.TestCase):
         
         builder.resolve_implicit_repeat(row)
 
-        self.assertEqual(2, row.instructions[3].stitches_after)
+        expected = 2
+        actual = row.instructions[3].stitches_after
+
+        self.assertEqual(expected, actual)
+
+    def test_can_compute_stitches_after_implicit_repeat_with_explicit_repeat_after(self):
+        row = Row(number=1, instructions=[
+            Stitch("p"),
+            Repeat([Stitch("p"), Stitch("k")]),
+            Repeat([Stitch("k"), Stitch("p")], num_times=2),
+            Stitch("p")
+        ])
+        part = Part(12, [row])
+        builder = PatternBuilder(part)
+
+        builder.resolve_implicit_repeat(row)
+
+        expected = 5
+        actual = row.instructions[1].stitches_after
+
+        self.assertEqual(expected, actual)
 
     def test_can_expand_row_of_all_stitches(self):
         row = Row(number=1, instructions=[Stitch("k"), Stitch("p"), Stitch("k")])

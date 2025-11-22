@@ -92,11 +92,6 @@ class Row:
             
             if len(implicit_repeats) > 1:
                 raise SyntaxError("A row may only have one implicit repeat")
-            
-            if len(implicit_repeats) != 0:
-                implicit_repeat = implicit_repeats[0]
-                if implicit_repeat != repeats[-1]:
-                    raise SyntaxError("An implicit repeat must be the last Repeat in the Row")
         
         self.number = number
         self.instructions = instructions

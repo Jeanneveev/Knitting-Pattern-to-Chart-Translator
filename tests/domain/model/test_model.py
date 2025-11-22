@@ -70,14 +70,6 @@ class TestRow(unittest.TestCase):
         except Exception as err:
             self.fail(f"An exception unexpectantly occured: {err}")
 
-    def test_rows_implicit_repeat_must_be_last_repeat(self):
-        with self.assertRaises(SyntaxError) as err:
-            row = Row(number=1, instructions=[
-                Repeat([Stitch("p"), Stitch("k")]), Stitch("p"),
-                Repeat([Stitch("k"), Stitch("p"), Stitch("k")], num_times=2)
-            ])
-        self.assertEqual("An implicit repeat must be the last Repeat in the Row", str(err.exception))
-
 class TestPart(unittest.TestCase):
     def test_part_must_include_caston_num_and_rows(self):
         part = Part(caston=1, rows=[Row(1, [Stitch("p")])])

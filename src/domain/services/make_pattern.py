@@ -194,20 +194,26 @@ class PatternBuilder:
         """
         
         instructions = row.instructions
-        idxs = [i for i, instruction in enumerate(instructions) if isinstance(instruction, Repeat)]
         
-        if len(idxs) == 0:  # There are no implicit repeats
+        implicit_repeat = None
+        implicit_repeat_idx = 0
+        for idx, instruction in enumerate(instructions):
+            if isinstance(instruction, Repeat):
+                if instruction.has_num_times == False:
+                    implicit_repeat = instruction
+                    implicit_repeat_idx = idx
+            
+        if implicit_repeat == None: # there are no implicit repeats
             return
 
-        idx = idxs[-1]  # An implicit Repeat, if it exists, is always the last Repeat
-        
-        repeat = instructions[idx]
-        if repeat.has_num_times:    # Last repeat is explicit, there are no implicit repeats
-            return
-
-        instrs_after = instructions[idx + 1 :]
-        stitches_after = sum(instr.stitches_consumed for instr in instrs_after if isinstance(instr, Stitch))
+        instrs_after = instructions[implicit_repeat_idx + 1 :]
+        stitches_after = 0
+        for instr in instrs_after:
+            if isinstance(instr, Stitch):
+                stitches_after += instr.stitches_consumed
+            if isinstance(instr, Repeat):   # has to be an explicit repeat
+                stitches_after += (len(instr.elements) * instr.num_times)
 
         # modify Repeat
         # print(f"stitches after are {stitches_after}")
-        repeat.stitches_after = stitches_after
+        implicit_repeat.stitches_after = stitches_after
