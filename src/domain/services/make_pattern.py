@@ -95,7 +95,7 @@ class Pattern:
         
         return False
 
-    def get_row(self, num) -> Row:
+    def get_row(self, num) -> ExpandedRow:
         return next((row for row in self.rows if row.number == num))
     
     def get_max_length(self) -> int:
@@ -116,9 +116,8 @@ class Pattern:
 
         return list(used)
 
-
 class PatternBuilder:
-    """Contains all the functions needed to build a Pattern out of a Part"""
+    """Creates an Pattern instance from a given Part instance"""
     def __init__(self, part:Part):
         self.part = part
     
@@ -215,5 +214,4 @@ class PatternBuilder:
                 stitches_after += (len(instr.elements) * instr.num_times)
 
         # modify Repeat
-        # print(f"stitches after are {stitches_after}")
         implicit_repeat.stitches_after = stitches_after
