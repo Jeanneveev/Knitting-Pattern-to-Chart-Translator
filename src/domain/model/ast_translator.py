@@ -74,7 +74,7 @@ class ASTtoModelTranslator:
         translated_rows = []
         for row in node.rows:
             translated_rows.append(self.translate_row(row))
-        return Part(caston=node.caston, rows=translated_rows)
+        return Part(caston=node.caston, rows=translated_rows, assumed_caston=node.assumed_caston)
     
     # Entrypoint function
     def translate_ast(self, root_node:PartNode) -> Part:

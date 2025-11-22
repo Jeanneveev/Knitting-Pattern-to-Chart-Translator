@@ -113,9 +113,12 @@ class Parser:
 
         if self._curr_token.value in ["k", "p"]:  # One row, unlabeled
             instructions = self.stitch_sequence()
+
+            assumed_caston = False
             if caston == None:
-                caston = len(instructions)
-            return PartNode(caston=caston, rows=[RowNode(number=1, instructions=instructions)])
+                caston = len(instructions)  ## ERROR!!! MAY BE INCORRECT
+                assumed_caston = True
+            return PartNode(caston=caston, rows=[RowNode(number=1, instructions=instructions)], assumed_caston=assumed_caston)
         
         result = [self.row()]
         while self._curr_token.type == TokenType.NEWLINE:
@@ -179,6 +182,8 @@ class Parser:
     
     # repeat = "*" , stitch_sequence , "*" , [";" , "repeat" , "from" , "*" , "to" , "*" , ? integer ? , "times"] ;
     def repeat(self) -> RepeatNode:
+        if self._caston_num is None:
+            raise ParserError("Cannot parse repeat without caston number")
         self.expect_value(["*"])
         repeat_section = self.stitch_sequence()
         # print(f"repeat section is: {repeat_section}")

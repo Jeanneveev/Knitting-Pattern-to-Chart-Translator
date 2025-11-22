@@ -29,7 +29,7 @@ class TestChartAdapter(unittest.TestCase):
             Row(1, [Repeat([Stitch("k"), Stitch("p"), Stitch("k")], num_times=3)])
         ])
 
-        expected=(
+        expected = (
             "+------+--------+-----------+-----------+\n"
             "| Name | Abbrev | RS Symbol | WS Symbol |\n"
             "+------+--------+-----------+-----------+\n"

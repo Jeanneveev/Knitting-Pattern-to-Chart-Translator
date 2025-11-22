@@ -11,8 +11,9 @@ def cli():
 
 @click.command(name="parse")
 @click.option("--chart_only", is_flag=True, help="Display only the knitting chart")
+@click.option("--key_only", is_flag=True, help="Display only the knitting chart key")
 @click.argument("pattern", type=str)
-def parse(chart_only, pattern:str):
+def parse(chart_only, key_only, pattern:str):
     """Parse pattern text"""
     parser_adapter = ParserAdapter()
     chart_adapter = ChartAdapter()
@@ -21,6 +22,8 @@ def parse(chart_only, pattern:str):
 
     if chart_only:
         output = cli_adapter.chart_only(pattern)
+    elif key_only:
+        output = cli_adapter.key_only(pattern)
     else:
         output = cli_adapter.run(pattern)
 

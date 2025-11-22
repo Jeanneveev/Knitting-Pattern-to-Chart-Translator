@@ -18,3 +18,4 @@ class RowNode:
 class PartNode:
     caston: int
     rows: list[RowNode]
+    assumed_caston: bool = False

@@ -104,7 +104,7 @@ class Row:
             return True
     
 class Part:
-    def __init__(self, caston:int, rows:list[Row]):
+    def __init__(self, caston:int, rows:list[Row], assumed_caston:bool = False):
         if caston < 1:
             raise ValueError("Caston number must be at least 1")
         
@@ -118,18 +118,23 @@ class Part:
             prev_row_num = row_numbers[-1]
             if row.number != prev_row_num + 1:
                 raise ValueError((
-                    f"Row numbers must be unique and sequential."
+                    f"Row numbers must be unique and sequential. "
                     f"Row number {i-1} is {prev_row_num} and row number {i} is {row.number}"
                 ))
 
         self.caston = caston
         self.rows = rows
+        self.assumed_caston = assumed_caston
 
     def __eq__(self, other):
         if not isinstance(other, Part):
             return False
         
-        if (self.caston == other.caston) and (self.rows == other.rows):
+        if (
+            self.caston == other.caston and
+            self.rows == other.rows and
+            self.assumed_caston == other.assumed_caston
+        ):
             return True
         return False
 

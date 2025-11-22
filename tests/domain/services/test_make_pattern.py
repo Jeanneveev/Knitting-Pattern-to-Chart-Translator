@@ -207,6 +207,21 @@ class TestPattern(unittest.TestCase):
         self.assertEqual(expected, actual)
 
 class TestBuildPattern(unittest.TestCase):
+    def test_can_correct_assumed_caston(self):
+        part = Part(7, [
+            Row(1, [Stitch("p"), Stitch("ssk"), Stitch("p"), Stitch("yo"), Stitch("p"), Stitch("ssk"), Stitch("p")]),
+            Row(2, [Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p")]),
+        ], assumed_caston=True)
+        builder = PatternBuilder(part)
+        
+        expected = Part(8, [
+            Row(1, [Stitch("p"), Stitch("ssk"), Stitch("p"), Stitch("yo"), Stitch("p"), Stitch("ssk"), Stitch("p")]),
+            Row(2, [Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p")]),
+        ], assumed_caston=False)
+        actual = builder.part
+
+        self.assertEqual(expected, actual)
+
     def test_can_build_pattern_from_part(self):
         row = Row(number=1, instructions=[
             Stitch("k"), Repeat([Stitch("p"), Stitch("k")], num_times=2), Stitch("k"),

@@ -119,6 +119,13 @@ class Pattern:
 class PatternBuilder:
     """Creates an Pattern instance from a given Part instance"""
     def __init__(self, part:Part):
+        # Fix assumed caston, if necessary
+        if part.assumed_caston == True:
+            first_row = part.rows[0]
+            stitch_count = sum(st.stitches_consumed for st in first_row.instructions)
+            part.caston = stitch_count
+            part.assumed_caston = False
+
         self.part = part
     
     def build_pattern(self) -> Pattern:
