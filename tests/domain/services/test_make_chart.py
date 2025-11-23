@@ -5,7 +5,7 @@ from src.domain.model.model import Stitch
 
 class TestChart(unittest.TestCase):
     def test_can_get_symbols_of_right_side_row(self):
-        row = ExpandedRow(1, [Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p")], 4)
+        row = ExpandedRow(1, [Stitch("k"), Stitch("p"), Stitch("k"), Stitch("p")])
         pattern = Pattern([row])
         chart = Chart(pattern)
 
@@ -15,9 +15,9 @@ class TestChart(unittest.TestCase):
         self.assertEqual(expected, actual)
     
     def test_can_get_symbols_of_wrong_side_row(self):
-        row_1 = ExpandedRow(1, [Stitch("k"), Stitch("yo"), Stitch("k")], 2)
+        row_1 = ExpandedRow(1, [Stitch("k"), Stitch("yo"), Stitch("k")])
         # print(f"End stitch count is: {row_1.end_st_count}")
-        row_2 = ExpandedRow(2, [Stitch("k"), Stitch("k2tog")], 3)
+        row_2 = ExpandedRow(2, [Stitch("k"), Stitch("k2tog")])
         pattern = Pattern([row_1, row_2])
         chart = Chart(pattern)
 
@@ -28,8 +28,8 @@ class TestChart(unittest.TestCase):
 
     def test_can_generate_border_of_maximum_row_length(self):
         pattern = Pattern([
-            ExpandedRow(1, [Stitch("k"), Stitch("yo"), Stitch("k")], 2),
-            ExpandedRow(2, [Stitch("k"), Stitch("k"), Stitch("k")], 3)
+            ExpandedRow(1, [Stitch("k"), Stitch("yo"), Stitch("k")]),
+            ExpandedRow(2, [Stitch("k"), Stitch("k"), Stitch("k")])
         ])
         chart = Chart(pattern)
 
@@ -40,8 +40,8 @@ class TestChart(unittest.TestCase):
 
     def test_can_build_right_side_row(self):
         pattern = Pattern([
-            ExpandedRow(1, [Stitch("k"), Stitch("yo"), Stitch("k")], 2),
-            ExpandedRow(2, [Stitch("k"), Stitch("k"), Stitch("k")], 3)
+            ExpandedRow(1, [Stitch("k"), Stitch("yo"), Stitch("k")]),
+            ExpandedRow(2, [Stitch("k"), Stitch("k"), Stitch("k")])
         ])
         chart = Chart(pattern)
 
@@ -52,8 +52,8 @@ class TestChart(unittest.TestCase):
 
     def test_can_build_wrong_side_row(self):
         pattern = Pattern([
-            ExpandedRow(1, [Stitch("k"), Stitch("yo"), Stitch("k")], 2),
-            ExpandedRow(2, [Stitch("k"), Stitch("k"), Stitch("k")], 3)
+            ExpandedRow(1, [Stitch("k"), Stitch("yo"), Stitch("k")]),
+            ExpandedRow(2, [Stitch("k"), Stitch("k"), Stitch("k")])
         ])
         chart = Chart(pattern)
 
@@ -64,7 +64,7 @@ class TestChart(unittest.TestCase):
 
     def test_can_generate_1_row_chart_from_pattern(self):
         pattern = Pattern([
-            ExpandedRow(1, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")], 4)
+            ExpandedRow(1, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p")])
         ])
         chart = Chart(pattern)
 
@@ -85,7 +85,7 @@ class TestChart(unittest.TestCase):
             Stitch("ssk"), Stitch("k2tog"),
             Stitch("k"), Stitch("yo"), Stitch("k"), Stitch("yo"),
             Stitch("k"), Stitch("p"), Stitch("k")
-        ], 15)
+        ])
         chart = Chart(Pattern([row]))
 
         expected = (    # NOTE: ssk box lines up when printed
@@ -105,13 +105,13 @@ class TestChart(unittest.TestCase):
                 Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p"),
                 Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p"),
                 Stitch("k"), Stitch("k")
-            ], 10),
+            ]),
             ExpandedRow(2, [
                 Stitch("k"),
                 Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p"),
                 Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p"),
                 Stitch("k")
-            ], 10)
+            ])
         ])
         chart = Chart(pattern)
 
@@ -134,16 +134,16 @@ class TestChart(unittest.TestCase):
         pattern = Pattern([
             ExpandedRow(1, [
                 Stitch("kfb"), Stitch("k"), Stitch("k"), Stitch("kfb")
-            ], 4),
+            ]),
             ExpandedRow(2, [
                 Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
-            ], 6),
+            ]),
             ExpandedRow(3, [
                 Stitch("kfb"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("kfb")
-            ], 6),
+            ]),
             ExpandedRow(4, [
                 Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
-            ], 8)
+            ])
         ])
         chart = Chart(pattern)
 
@@ -174,18 +174,18 @@ class TestChart(unittest.TestCase):
                 Stitch("ssk"),
                 Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"),
                 Stitch("k2tog")
-            ], 10),
+            ]),
             ExpandedRow(2, [
                 Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
-            ], 8),
+            ]),
             ExpandedRow(3, [
                 Stitch("ssk"),
                 Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"),
                 Stitch("k2tog")
-            ], 8),
+            ]),
             ExpandedRow(4, [
                 Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
-            ], 6)
+            ])
         ])
         chart = Chart(pattern)
     
@@ -207,7 +207,7 @@ class TestChart(unittest.TestCase):
 class TestKey(unittest.TestCase):
     def test_can_get_the_length_of_the_longest_column(self):
         ex_col_contents = ["Name", "Knit", "Purl"]
-        junk_pattern = Pattern([ExpandedRow(1, [Stitch("k")], 1)])
+        junk_pattern = Pattern([ExpandedRow(1, [Stitch("k")])])
         chart = Chart(junk_pattern)
 
         expected = 6
@@ -217,7 +217,7 @@ class TestKey(unittest.TestCase):
 
     def test_can_pad_column_evenly(self):
         ex_col_contents = ["Name", "Knit", "Purl"]
-        junk_pattern = Pattern([ExpandedRow(1, [Stitch("k")], 1)])
+        junk_pattern = Pattern([ExpandedRow(1, [Stitch("k")])])
         chart = Chart(junk_pattern)
 
         expected = [" Name ", " Knit ", " Purl "]
@@ -227,8 +227,8 @@ class TestKey(unittest.TestCase):
 
     def test_can_generate_key_from_chart(self):
         pattern = Pattern([
-            ExpandedRow(1, [Stitch("k"), Stitch("p"), Stitch("p"), Stitch("k")], 4),
-            ExpandedRow(2, [Stitch("p"), Stitch("k"), Stitch("k"), Stitch("p")], 4)
+            ExpandedRow(1, [Stitch("k"), Stitch("p"), Stitch("p"), Stitch("k")]),
+            ExpandedRow(2, [Stitch("p"), Stitch("k"), Stitch("k"), Stitch("p")])
         ])
         chart = Chart(pattern)
 

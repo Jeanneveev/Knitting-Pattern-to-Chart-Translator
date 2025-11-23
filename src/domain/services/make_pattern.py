@@ -6,39 +6,30 @@ from ordered_set import OrderedSet
 from src.domain.model.model import Stitch, Repeat, Row, Part
 
 class ExpandedRow:
-    def __init__(self, number:int, stitches:list[Stitch], start_st_count: int):
+    def __init__(self, number:int, stitches:list[Stitch]):
         if len(stitches) == 0:
             raise ValueError("ExpandedRow must contain at least one instruction")
-        
-        if start_st_count < 1:
-            raise ValueError("There must be at least one stitch at the start of the row")
-        
-        count = 0
-        for stitch in stitches:
-            count += stitch.stitches_consumed
-        if count != start_st_count:
-            raise ValueError((
-                f"Start_st_count is incorrect, {start_st_count} was given "
-                f"when it should be {count}"
-            ))
                 
         self.number = number
         self.stitches = stitches
         self.num_instructions = len(stitches)
-        self.start_st_count = start_st_count
 
     def __eq__(self, other):
         if not isinstance(other, ExpandedRow):
             return False
         
-        if ((self.number == other.number) and
-            (self.stitches == other.stitches) and
-            (self.start_st_count == other.start_st_count)
-        ):
+        if ((self.number == other.number) and (self.stitches == other.stitches)):
             return True
         
         return False
     
+    @property
+    def start_st_count(self):
+        st_count = 0
+        for stitch in self.stitches:
+            st_count += stitch.stitches_consumed
+        return st_count
+
     @property
     def end_st_count(self):
         end_st_count = self.start_st_count
@@ -99,26 +90,12 @@ class Pattern:
     def get_row(self, num) -> ExpandedRow:
         return next((row for row in self.rows if row.number == num))
     
-    def get_max_end_length(self) -> int:
-        max_len = 0
-        for row in self.rows:
-            max_len = max(max_len, row.end_st_count)
-
-        return max_len
-    
-    def get_max_start_length(self) -> int:
-        max_len = 0
-        for row in self.rows:
-            max_len = max(max_len, row.start_st_count)
-
-        return max_len
-    
     def get_max_length(self) -> int:
         """Get the length of the longest row in the pattern"""
         # return max(self.get_max_start_length(), self.get_max_end_length())
         max_len = 0
         for row in self.rows:
-            max_len = max(max_len, len(row.stitches))
+            max_len = max(max_len, row.num_instructions)
         return max_len
 
     def get_stitches_used(self) -> list[str]:
@@ -162,7 +139,7 @@ class PatternBuilder:
         flattened = self.expand_row(row, prev_st_count)
         stitches = flattened.instructions
         
-        return ExpandedRow(number, stitches, prev_st_count)
+        return ExpandedRow(number, stitches)
     
     def expand_row(self, row:Row, prev_row_st_count:int):
         """Expand any Repeats in a given Row into a flat list of Stitches"""
