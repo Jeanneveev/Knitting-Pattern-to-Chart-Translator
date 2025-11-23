@@ -98,13 +98,23 @@ class Pattern:
     def get_row(self, num) -> ExpandedRow:
         return next((row for row in self.rows if row.number == num))
     
-    def get_max_length(self) -> int:
-        """Get the length of the longest row in the pattern"""
+    def get_max_end_length(self) -> int:
         max_len = 0
         for row in self.rows:
             max_len = max(max_len, row.end_st_count)
 
         return max_len
+    
+    def get_max_start_length(self) -> int:
+        max_len = 0
+        for row in self.rows:
+            max_len = max(max_len, row.start_st_count)
+
+        return max_len
+    
+    def get_max_length(self) -> int:
+        """Get the length of the longest row in the pattern"""
+        return max(self.get_max_start_length(), self.get_max_end_length())
 
     def get_stitches_used(self) -> list[str]:
         """Get the abbreviations of all stitches used in the pattern"""

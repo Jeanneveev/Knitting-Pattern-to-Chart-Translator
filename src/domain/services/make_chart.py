@@ -1,4 +1,4 @@
-from src.domain.services.make_pattern import Pattern
+from src.domain.services.make_pattern import Pattern, ExpandedRow
 from src.domain.model.model import Stitch
 
 class Chart:
@@ -29,9 +29,26 @@ class Chart:
 
         return border + "\n"
     
+    def _pad_row(self, row:ExpandedRow, row_symbols:list[str]):
+        """If the row given is shorter than the longest row, pad the empty spaces with Xs"""
+        max_length = self.pattern.get_max_length()
+        difference = max_length - row.start_st_count
+        if difference == 0:
+            return row_symbols
+        
+        if difference % 2 == 0:  # pad evenly on either side of the row
+            for _ in range(int(difference / 2)):
+                row_symbols.insert(0, "X")
+                row_symbols.insert(len(row_symbols), "X")
+
+        return row_symbols
+    
     def _build_row(self, row_num:int) -> str:
+        # print(f"building row {row_num}")
         result = "|"
         symbols = self.get_row_symbols(row_num)[row_num]
+        symbols = self._pad_row(self.pattern.get_row(row_num), symbols)
+        # print(f"symbols are now: {symbols}")
         
         for symbol in symbols:
             result += f" {symbol} |"
