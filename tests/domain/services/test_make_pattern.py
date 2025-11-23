@@ -33,6 +33,12 @@ class TestExpandedRow(unittest.TestCase):
         row = ExpandedRow(2, [Stitch("k"), Stitch("ssk"), Stitch("k")], 4)
         self.assertEqual(row.end_st_count, 3)
 
+    def test_num_instructions_is_based_off_number_of_stitches(self):
+        row_1 = ExpandedRow(1, [Stitch("k"), Stitch("ssk"), Stitch("k")], 4)
+        self.assertEqual(row_1.num_instructions, 3)
+        row_2 = ExpandedRow(2, [Stitch("k"), Stitch("yo"), Stitch("k")], 2)
+        self.assertEqual(row_2.num_instructions, 3)
+
     def test_can_get_right_side_symbols_of_expandedrow(self):
         row = ExpandedRow(number=1, stitches=[Stitch("k"), Stitch("p"), Stitch("p")], start_st_count=3)
         expected = [" ", "-", "-"]

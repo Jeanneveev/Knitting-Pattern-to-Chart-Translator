@@ -24,6 +24,7 @@ class ExpandedRow:
                 
         self.number = number
         self.stitches = stitches
+        self.num_instructions = len(stitches)
         self.start_st_count = start_st_count
 
     def __eq__(self, other):
@@ -114,7 +115,11 @@ class Pattern:
     
     def get_max_length(self) -> int:
         """Get the length of the longest row in the pattern"""
-        return max(self.get_max_start_length(), self.get_max_end_length())
+        # return max(self.get_max_start_length(), self.get_max_end_length())
+        max_len = 0
+        for row in self.rows:
+            max_len = max(max_len, len(row.stitches))
+        return max_len
 
     def get_stitches_used(self) -> list[str]:
         """Get the abbreviations of all stitches used in the pattern"""

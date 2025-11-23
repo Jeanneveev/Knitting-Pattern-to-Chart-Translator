@@ -32,10 +32,11 @@ class Chart:
     def _pad_row(self, row:ExpandedRow, row_symbols:list[str]):
         """If the row given is shorter than the longest row, pad the empty spaces with Xs"""
         max_length = self.pattern.get_max_length()
-        difference = max_length - row.start_st_count
+        difference = abs(max_length - row.num_instructions)
         if difference == 0:
             return row_symbols
         
+        # print(f"Padding row {row.number}, max_length is {max_length}, difference is: {difference}")
         if difference % 2 == 0:  # pad evenly on either side of the row
             for _ in range(int(difference / 2)):
                 row_symbols.insert(0, "X")
