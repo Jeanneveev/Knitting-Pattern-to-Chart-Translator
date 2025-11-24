@@ -1,11 +1,12 @@
 from src.domain.services.make_pattern import Pattern, ExpandedRow
-from src.domain.model.model import Stitch
+from src.domain.model.model import Stitch, StitchType
+import math
 
 class Chart:
     def __init__(self, pattern:Pattern):
         self.pattern = pattern
 
-    def get_row_symbols(self, row_num:int) -> dict:
+    def get_row_symbols(self, row_num:int) -> list[str]:
         """Get the symbols of a row in the pattern by its row number"""
         ## NOTE: odd rows are on the right side and use rs symbols
         # while even rows are on the wrong side and use ws symbols.
@@ -14,18 +15,28 @@ class Chart:
             row = self.pattern.get_row(row_num)
             symbols = row.get_symbols_rs()
             symbols.reverse()
-            return {row_num: symbols}
+            return symbols
         else:   #wrong-side, display normally
             # print("wrong-side")
             row = self.pattern.get_row(row_num)
             symbols = row.get_symbols_ws()
-            return {row_num: symbols}
+            return symbols
         
     def _build_border(self) -> str:
         length = self.pattern.get_max_length()
-        border = "---+---"
-        for _ in range(length):
-            border += "+---"
+        symbols_used = self.pattern.get_symbols_used()
+        max_sym_len = 0
+        for symbol in symbols_used:
+            sym_len = len(symbol)
+            if "\\" in symbol:
+                sym_len - 1
+            max_sym_len = max(sym_len, max_sym_len)
+        max_sym_len += 2    # for the spacing on either side
+
+        border_line = "-" * max_sym_len
+        border = border_line
+        for _ in range(length + 1): # +1 is for the last space 
+            border += f"+{border_line}"
 
         return border + "\n"
     
@@ -47,7 +58,7 @@ class Chart:
     def _build_row(self, row_num:int) -> str:
         # print(f"building row {row_num}")
         result = "|"
-        symbols = self.get_row_symbols(row_num)[row_num]
+        symbols = self.get_row_symbols(row_num)
         symbols = self._pad_row(self.pattern.get_row(row_num), symbols)
         # print(f"symbols are now: {symbols}")
         
@@ -62,13 +73,165 @@ class Chart:
             result = f" {row_num} " + result + "   "
 
         return result + "\n"
+    
+    def _build_row_2(self, symbols:list[str], row_num:int) -> str:
+        # print(f"building row {row_num}")
+        result = "|"
+        # print(f"symbols are now: {symbols}")
+        
+        for symbol in symbols:
+            result += f" {symbol} |"
 
-    def render_grid(self) -> str:
-        border = self._build_border()        
+        if row_num % 2 == 1:    #right-side, display in reverse
+            # print("right-side")
+            result = "   " + result + f" {row_num} "
+        else:               #wrong-side, display normally
+            # print("wrong-side")
+            result = f" {row_num} " + result + "   "
+
+        return result + "\n"
+    
+    def _check_padding_sides(self, symbols:list[str]) -> dict:
+        """Get the count on each side of all, if any, padding stitches in the given row"""
+        all_padding = {"left":0, "right":0}
+        # NOTE: The index of where the Xs stop is also the number of Xs there are
+        all_padding["left"] = next(i for i, symbol in enumerate(symbols) if symbol != "X")
+        all_padding["right"] = next(i for i, symbol in enumerate(list(reversed(symbols))) if symbol != "X")
+        
+        return all_padding
+
+    def _pad_all_shorter_rows(self, shorter_rows:dict[int, list[str]], to_pad_left, to_pad_right) -> dict:
+        result = {}
+        for i, short_row_padded_symbols in shorter_rows.items():
+            for _ in range(to_pad_left):
+                    short_row_padded_symbols.insert(0, "X")
+            for _ in range(to_pad_right):
+                short_row_padded_symbols.insert(len(short_row_padded_symbols), "X")    
+
+            result[i] = short_row_padded_symbols
+        return result
+
+    def _pad_grid(self):
+        expanded_rows = self.pattern.rows
+        padded_symbols_rows:list[list[str]] = []
+        for i, curr_row in enumerate(expanded_rows):
+            print(f"padding row {curr_row.number}")
+            if i == 0:
+                padded_symbols_rows.append(self.get_row_symbols(curr_row.number))
+                continue
+        
+            prev_row = expanded_rows[i-1]
+            prev_unpadded_symbols = self.get_row_symbols(prev_row.number)
+            prev_padded_symbols = padded_symbols_rows[i-1]
+            prev_unpadded_len = prev_row.num_instructions
+            curr_unpadded_len = curr_row.num_instructions
+            curr_symbols = self.get_row_symbols(curr_row.number)
+        
+            # 1. If the current row is shorter than the maximum length AND the previous row has padding
+            #   add equal amount of padding on current row
+            prev_padding_side_counts = self._check_padding_sides(prev_padded_symbols)
+            # print(f"prev padding side counts of row {prev_row.number} are {prev_padding_side_counts}")
+            prev_left_padding_count = prev_padding_side_counts["left"]
+            prev_right_padding_count = prev_padding_side_counts["right"]
+            if (
+                (len(curr_symbols) < self.pattern.get_max_length()) and
+                (prev_left_padding_count != 0) and (prev_right_padding_count != 0)
+            ):
+                print(f"Padding scenario 1")
+                for _ in range(prev_left_padding_count):
+                    curr_symbols.insert(0, "X")
+                for _ in range(prev_right_padding_count):
+                    curr_symbols.insert(len(curr_symbols), "X")
+
+            # 2. If the current row is longer than the previous row,
+            #   Add padding to all prior rows that are shorter than this row until you reach one that isn't
+            if curr_unpadded_len > prev_unpadded_len:
+                print("Padding scenario 2")
+
+                # Get all previous shorter rows until encountering one that isn't
+                shorter_rows: dict = {}
+                for x, row in enumerate(expanded_rows):
+                    if curr_unpadded_len > row.num_instructions:
+                        # print(f"Row {row.number} is shorter than row {curr_row.number}")
+                        shorter_rows[x] = padded_symbols_rows[x]
+                    else:
+                        break
+                # Get the amount to pad each shorter row by
+                middle_point = math.ceil(prev_row.num_instructions / 2)
+                left_stiches = prev_row.stitches[:middle_point]
+                right_stiches = prev_row.stitches[middle_point:]
+                to_pad_left = 0
+                to_pad_right = 0
+                for stitch in left_stiches:
+                    print(f"reading stitch {stitch}")
+                    if stitch.type == StitchType.INCREASE:
+                        print("Increase found on left")
+                        to_pad_left += 1
+                    elif stitch.type == StitchType.DECREASE:
+                        to_pad_left -= 1
+                for stitch in right_stiches:
+                    if stitch.type == StitchType.INCREASE:
+                        print("Increase found on right")
+                        to_pad_right += 1
+                    elif stitch.type == StitchType.DECREASE:
+                        to_pad_right -= 1
+                print(f"to pad left is: {to_pad_left}, to pad right is: {to_pad_right}")
+
+                changed_rows = self._pad_all_shorter_rows(shorter_rows, to_pad_left, to_pad_right)
+                for key, value in changed_rows.items():
+                    padded_symbols_rows[key] = value
+                    print(f"row updated, is now {value}")
+
+                
+            # 3. If the current row is shorter than the previous row,
+            #   add padding to the current row on the oppsite side of the decrease
+            if curr_unpadded_len < prev_unpadded_len:
+                print("Padding scenario 3")
+
+                # Get all previous longer rows until encountering one that isn't
+                longer_rows: dict = {}
+                for x, row in enumerate(expanded_rows):
+                    if curr_unpadded_len < row.num_instructions:
+                        # print(f"Row {row.number} is longer than row {curr_row.number}")
+                        longer_rows[x] = padded_symbols_rows[x]
+                    else:
+                        break
+                # Get the amount to pad current row by
+                middle_point = math.ceil(curr_row.num_instructions / 2)
+                left_stiches = curr_row.stitches[:middle_point]
+                right_stiches = curr_row.stitches[middle_point:]
+                to_pad_left = 0
+                to_pad_right = 0
+                for stitch in left_stiches:
+                    if stitch.type == StitchType.INCREASE:
+                        to_pad_left -= 1
+                    elif stitch.type == StitchType.DECREASE:
+                        to_pad_left += 1
+                for stitch in right_stiches:
+                    if stitch.type == StitchType.INCREASE:
+                        to_pad_right -= 1
+                    elif stitch.type == StitchType.DECREASE:
+                        to_pad_right += 1
+                # print(f"to pad left is: {to_pad_left}, to pad right is: {to_pad_right}")
+
+                for _ in range(to_pad_left):
+                    curr_symbols.insert(0, "X")
+                for _ in range(to_pad_right):
+                    curr_symbols.insert(len(curr_symbols), "X")
+
+            padded_symbols_rows.append(curr_symbols)
+
+        return list(reversed(padded_symbols_rows))
+
+
+
+    def render_grid(self):
+        padded_symbols_grid = self._pad_grid()
+        row_nums = [row.number for row in list(reversed(self.pattern.rows))]
         body = []
-        rows = list(reversed(self.pattern.rows))
-        for row in rows:
-            body.append(self._build_row(row.number))
+        border = self._build_border()
+        for i, padded_symbols_row in enumerate(padded_symbols_grid):
+            body.append(self._build_row_2(padded_symbols_row, row_nums[i]))
 
         grid = ""
         for row in body:
@@ -78,6 +241,7 @@ class Chart:
 
         # print(f"grid is:\n {grid}")
         return grid
+
     
     def _get_column_width(self, contents:list[str]) -> int:
         """Get the width of the longest value in the column"""

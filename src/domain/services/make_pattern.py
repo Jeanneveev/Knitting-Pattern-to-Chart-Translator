@@ -107,6 +107,16 @@ class Pattern:
                 used.add(stitch.abbrev)
 
         return list(used)
+    
+    def get_symbols_used(self) -> list[str]:
+        """Get the symbols of all stitches used in the pattern"""
+        used = OrderedSet()
+
+        for row in self.rows:
+            for stitch in row.stitches:
+                used.add(stitch.symbol_rs if row.number % 2 == 1 else stitch.symbol_ws)
+        
+        return list(used)
 
 class PatternBuilder:
     """Creates an Pattern instance from a given Part instance"""
