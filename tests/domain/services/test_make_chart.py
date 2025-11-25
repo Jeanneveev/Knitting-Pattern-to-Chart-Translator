@@ -56,21 +56,23 @@ class TestChart(unittest.TestCase):
             ExpandedRow(2, [Stitch("k"), Stitch("k"), Stitch("k")])
         ])
         chart = Chart(pattern)
+        row_symbols = [" ", "O", " "]
 
         expected = "   |   | O |   | 1 \n"
-        actual = chart._build_row(1)
+        actual = chart._build_row_from_symbols(row_symbols, 1)
 
         self.assertEqual(expected, actual)
 
     def test_can_build_wrong_side_row(self):
         pattern = Pattern([
             ExpandedRow(1, [Stitch("k"), Stitch("yo"), Stitch("k")]),
-            ExpandedRow(2, [Stitch("k"), Stitch("k"), Stitch("k")])
+            ExpandedRow(2, [Stitch("k"), Stitch("k"), Stitch("p")])
         ])
         chart = Chart(pattern)
+        row_symbols = ["-", "-", " "]
 
-        expected = " 2 | - | - | - |   \n"
-        actual = chart._build_row(2)
+        expected = " 2 | - | - |   |   \n"
+        actual = chart._build_row_from_symbols(row_symbols, 2)
 
         self.assertEqual(expected, actual)
 
@@ -278,17 +280,17 @@ class TestChart(unittest.TestCase):
                 Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"),
             ]),
             ExpandedRow(8, [
-                Stitch("p2tog"),
+                Stitch("k2tog"),
                 Stitch("p"), Stitch("p"), Stitch("p"),
-                Stitch("ssp")
+                Stitch("ssk")
             ]),
             ExpandedRow(9, [
                 Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k")
             ]),
             ExpandedRow(10, [
-                Stitch("p2tog"),
+                Stitch("k2tog"),
                 Stitch("p"),
-                Stitch("ssp")
+                Stitch("ssk")
             ]),
             ExpandedRow(11, [
                 Stitch("k"), Stitch("k"), Stitch("k")
@@ -303,93 +305,91 @@ class TestChart(unittest.TestCase):
             "----+----+----+----+----+----+----+----+----\n"
             " 12 |  X |  X |  X |  ^ |  X |  X |  X |    \n"
             "----+----+----+----+----+----+----+----+----\n"
-            "    |  X |  X |    |    |    |  X |  X | 11  \n"
+            "    |  X |  X |    |    |    |  X |  X | 11 \n"
             "----+----+----+----+----+----+----+----+----\n"
-            " 1O |  X |  X | /. |    | \\. |  X |  X |    \n"
+            " 10 |  X |  X | /. |    | \\. |  X |  X |    \n"
             "----+----+----+----+----+----+----+----+----\n"
-            "    |  X |    |    |    |    |    |  X | 9  \n"
+            "    |  X |    |    |    |    |    |  X |  9 \n"
             "----+----+----+----+----+----+----+----+----\n"
             "  8 |  X | /. |    |    |    | \\. |  X |    \n"
             "----+----+----+----+----+----+----+----+----\n"
-            "    |    |    |    |    |    |    |    | 7  \n"
+            "    |    |    |    |    |    |    |    |  7 \n"
             "----+----+----+----+----+----+----+----+----\n"
             "  6 |  O |    |    |    |    |    |  O |    \n"
             "----+----+----+----+----+----+----+----+----\n"
-            "    |  X |    |    |    |    |    |  X | 5  \n"
+            "    |  X |    |    |    |    |    |  X |  5 \n"
             "----+----+----+----+----+----+----+----+----\n"
             "  4 |  X |  O |    |    |    |  O |  X |    \n"
             "----+----+----+----+----+----+----+----+----\n"
-            "    |  X |  X |    |    |    |  X |  X | 3  \n"
+            "    |  X |  X |    |    |    |  X |  X |  3 \n"
             "----+----+----+----+----+----+----+----+----\n"
             "  2 |  X |  X |  O |    |  O |  X |  X |    \n"
             "----+----+----+----+----+----+----+----+----\n"
-            "    |  X |  X |  X |    |  X |  X |  X | 1  \n"
+            "    |  X |  X |  X |    |  X |  X |  X |  1 \n"
             "----+----+----+----+----+----+----+----+----\n"
         )
         actual = chart.render_grid()
 
         self.assertEqual(expected, actual, f"expected was:\n{expected}\nactual was:\n{actual}")
 
-
-
-    # def test_can_pad_asymmetrical_chart(self):
-    #     pattern = Pattern([
-    #         ExpandedRow(1, [Stitch("yo"), Stitch("k"), Stitch("k"), Stitch("k")]),
-    #         ExpandedRow(2, [Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")])
-    #     ])
-    #     chart = Chart(pattern)
+    def test_can_pad_asymmetrical_chart(self):
+        pattern = Pattern([
+            ExpandedRow(1, [Stitch("kfb"), Stitch("k"), Stitch("k"), Stitch("k")]),
+            ExpandedRow(2, [Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")])
+        ])
+        chart = Chart(pattern)
         
-    #     expected = (
-    #         "---+---+---+---+---+---+---\n"
-    #         " 2 |   |   |   |   |   |   \n"
-    #         "---+---+---+---+---+---+---\n"
-    #         "   |   |   |   | O | X | 1 \n"
-    #         "---+---+---+---+---+---+---\n"
-    #     )
-    #     actual = chart.render_grid()
+        expected = (
+            "---+---+---+---+---+---+---\n"
+            " 2 |   |   |   |   |   |   \n"
+            "---+---+---+---+---+---+---\n"
+            "   | X |   |   |   | Y | 1 \n"
+            "---+---+---+---+---+---+---\n"
+        )
+        actual = chart.render_grid()
 
-    #     self.assertEqual(expected, actual)
+        self.assertEqual(expected, actual, f"expected was:\n{expected}\nactual was:\n{actual}")
 
-# class TestKey(unittest.TestCase):
-#     def test_can_get_the_length_of_the_longest_column(self):
-#         ex_col_contents = ["Name", "Knit", "Purl"]
-#         junk_pattern = Pattern([ExpandedRow(1, [Stitch("k")])])
-#         chart = Chart(junk_pattern)
+class TestKey(unittest.TestCase):
+    def test_can_get_the_length_of_the_longest_column(self):
+        ex_col_contents = ["Name", "Knit", "Purl"]
+        junk_pattern = Pattern([ExpandedRow(1, [Stitch("k")])])
+        chart = Chart(junk_pattern)
 
-#         expected = 6
-#         actual = chart._get_column_width(ex_col_contents)
+        expected = 6
+        actual = chart._get_column_width(ex_col_contents)
 
-#         self.assertEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
-#     def test_can_pad_column_evenly(self):
-#         ex_col_contents = ["Name", "Knit", "Purl"]
-#         junk_pattern = Pattern([ExpandedRow(1, [Stitch("k")])])
-#         chart = Chart(junk_pattern)
+    def test_can_pad_column_evenly(self):
+        ex_col_contents = ["Name", "Knit", "Purl"]
+        junk_pattern = Pattern([ExpandedRow(1, [Stitch("k")])])
+        chart = Chart(junk_pattern)
 
-#         expected = [" Name ", " Knit ", " Purl "]
-#         actual = chart._pad_column(ex_col_contents)
+        expected = [" Name ", " Knit ", " Purl "]
+        actual = chart._pad_column(ex_col_contents)
 
-#         self.assertEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
-#     def test_can_generate_key_from_chart(self):
-#         pattern = Pattern([
-#             ExpandedRow(1, [Stitch("k"), Stitch("p"), Stitch("p"), Stitch("k")]),
-#             ExpandedRow(2, [Stitch("p"), Stitch("k"), Stitch("k"), Stitch("p")])
-#         ])
-#         chart = Chart(pattern)
+    def test_can_generate_key_from_chart(self):
+        pattern = Pattern([
+            ExpandedRow(1, [Stitch("k"), Stitch("p"), Stitch("p"), Stitch("k")]),
+            ExpandedRow(2, [Stitch("p"), Stitch("k"), Stitch("k"), Stitch("p")])
+        ])
+        chart = Chart(pattern)
 
-#         expected = (
-#             "+------+--------+-----------+-----------+\n"
-#             "| Name | Abbrev | RS Symbol | WS Symbol |\n"
-#             "+------+--------+-----------+-----------+\n"
-#             "| Knit |    k   |           |     -     |\n"
-#             "+------+--------+-----------+-----------+\n"
-#             "| Purl |    p   |     -     |           |\n"
-#             "+------+--------+-----------+-----------+\n"
-#         )
-#         actual = chart.render_key()
+        expected = (
+            "+------+--------+-----------+-----------+\n"
+            "| Name | Abbrev | RS Symbol | WS Symbol |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Knit |    k   |           |     -     |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Purl |    p   |     -     |           |\n"
+            "+------+--------+-----------+-----------+\n"
+        )
+        actual = chart.render_key()
 
-#         self.assertEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
 if __name__ == "__main__":
     unittest.main()

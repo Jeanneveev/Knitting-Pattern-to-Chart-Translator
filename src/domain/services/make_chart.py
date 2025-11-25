@@ -22,72 +22,67 @@ class Chart:
             symbols = row.get_symbols_ws()
             return symbols
         
-    def _build_border(self) -> str:
-        length = self.pattern.get_max_length()
+    def _get_max_item_length(self) -> int:
+        """Get the longest item in the chart +2 for padding"""
         symbols_used = self.pattern.get_symbols_used()
         max_sym_len = 0
+        
         for symbol in symbols_used:
             sym_len = len(symbol)
             if "\\" in symbol:
                 sym_len - 1
             max_sym_len = max(sym_len, max_sym_len)
-        max_sym_len += 2    # for the spacing on either side
 
-        border_line = "-" * max_sym_len
+        last_row_num = self.pattern.rows[-1].number
+        longest_item = max(max_sym_len, len(str(last_row_num)))
+        longest_item += 2    # for the spacing on either side
+
+        return longest_item
+        
+    def _build_border(self) -> str:
+        # Calculate many dashes there should be per item
+        length = self.pattern.get_max_length()
+        dash_num = self._get_max_item_length()
+
+        # Build border
+        border_line = "-" * dash_num
         border = border_line
         for _ in range(length + 1): # +1 is for the last space 
             border += f"+{border_line}"
 
         return border + "\n"
     
-    def _pad_row(self, row:ExpandedRow, row_symbols:list[str]):
-        """If the row given is shorter than the longest row, pad the empty spaces with Xs"""
-        max_length = self.pattern.get_max_length()
-        difference = abs(max_length - row.num_instructions)
-        if difference == 0:
-            return row_symbols
-        
-        # print(f"Padding row {row.number}, max_length is {max_length}, difference is: {difference}")
-        if difference % 2 == 0:  # pad evenly on either side of the row
-            for _ in range(int(difference / 2)):
-                row_symbols.insert(0, "X")
-                row_symbols.insert(len(row_symbols), "X")
+    def _pad_item(self, symbol:str):
+        item_len = self._get_max_item_length()
+        sym_len = len(symbol)
+        to_pad = item_len - sym_len # always < 2
 
-        return row_symbols
+        padded_item = symbol
+        for i in range(to_pad):
+            if i % 2 == 0:
+                padded_item = " " + padded_item
+            else:
+                padded_item = padded_item + " "
+
+        return padded_item
     
-    def _build_row(self, row_num:int) -> str:
-        # print(f"building row {row_num}")
-        result = "|"
-        symbols = self.get_row_symbols(row_num)
-        symbols = self._pad_row(self.pattern.get_row(row_num), symbols)
-        # print(f"symbols are now: {symbols}")
-        
-        for symbol in symbols:
-            result += f" {symbol} |"
-
-        if row_num % 2 == 1:    #right-side, display in reverse
-            # print("right-side")
-            result = "   " + result + f" {row_num} "
-        else:               #wrong-side, display normally
-            # print("wrong-side")
-            result = f" {row_num} " + result + "   "
-
-        return result + "\n"
-    
-    def _build_row_2(self, symbols:list[str], row_num:int) -> str:
+    def _build_row_from_symbols(self, symbols:list[str], row_num:int) -> str:
         # print(f"building row {row_num}")
         result = "|"
         # print(f"symbols are now: {symbols}")
         
         for symbol in symbols:
-            result += f" {symbol} |"
+            padded = self._pad_item(symbol)
+            result += f"{padded}|"
 
+        padded_row_num = self._pad_item(str(row_num))
+        space = " " * len(padded_row_num)
         if row_num % 2 == 1:    #right-side, display in reverse
             # print("right-side")
-            result = "   " + result + f" {row_num} "
+            result = space + result + f"{padded_row_num}"
         else:               #wrong-side, display normally
             # print("wrong-side")
-            result = f" {row_num} " + result + "   "
+            result = f"{padded_row_num}" + result + space
 
         return result + "\n"
     
@@ -115,13 +110,13 @@ class Chart:
         expanded_rows = self.pattern.rows
         padded_symbols_rows:list[list[str]] = []
         for i, curr_row in enumerate(expanded_rows):
-            print(f"padding row {curr_row.number}")
+            # print(f"padding row {curr_row.number}")
             if i == 0:
                 padded_symbols_rows.append(self.get_row_symbols(curr_row.number))
                 continue
         
             prev_row = expanded_rows[i-1]
-            prev_unpadded_symbols = self.get_row_symbols(prev_row.number)
+            # prev_unpadded_symbols = self.get_row_symbols(prev_row.number)
             prev_padded_symbols = padded_symbols_rows[i-1]
             prev_unpadded_len = prev_row.num_instructions
             curr_unpadded_len = curr_row.num_instructions
@@ -137,7 +132,7 @@ class Chart:
                 (len(curr_symbols) < self.pattern.get_max_length()) and
                 (prev_left_padding_count != 0) and (prev_right_padding_count != 0)
             ):
-                print(f"Padding scenario 1")
+                # print(f"Padding scenario 1")
                 for _ in range(prev_left_padding_count):
                     curr_symbols.insert(0, "X")
                 for _ in range(prev_right_padding_count):
@@ -146,7 +141,7 @@ class Chart:
             # 2. If the current row is longer than the previous row,
             #   Add padding to all prior rows that are shorter than this row until you reach one that isn't
             if curr_unpadded_len > prev_unpadded_len:
-                print("Padding scenario 2")
+                # print("Padding scenario 2")
 
                 # Get all previous shorter rows until encountering one that isn't
                 shorter_rows: dict = {}
@@ -157,36 +152,42 @@ class Chart:
                     else:
                         break
                 # Get the amount to pad each shorter row by
-                middle_point = math.ceil(prev_row.num_instructions / 2)
-                left_stiches = prev_row.stitches[:middle_point]
-                right_stiches = prev_row.stitches[middle_point:]
+                relevant_row = None
+                if any(st for st in prev_row.stitches if st.type == StitchType.INCREASE):
+                    relevant_row = prev_row
+                elif any(st for st in curr_row.stitches if st.type == StitchType.INCREASE):
+                    relevant_row = curr_row
+
+                middle_point = math.ceil(relevant_row.num_instructions / 2)
+                left_stiches = relevant_row.stitches[:middle_point]
+                right_stiches = relevant_row.stitches[middle_point:]
                 to_pad_left = 0
                 to_pad_right = 0
                 for stitch in left_stiches:
-                    print(f"reading stitch {stitch}")
+                    # print(f"reading stitch {stitch}")
                     if stitch.type == StitchType.INCREASE:
-                        print("Increase found on left")
-                        to_pad_left += 1
+                        # print("Increase found on left")
+                        to_pad_left += (stitch.stitches_produced - stitch.stitches_consumed)
                     elif stitch.type == StitchType.DECREASE:
-                        to_pad_left -= 1
+                        to_pad_left += (stitch.stitches_produced - stitch.stitches_consumed)
                 for stitch in right_stiches:
                     if stitch.type == StitchType.INCREASE:
-                        print("Increase found on right")
-                        to_pad_right += 1
+                        # print("Increase found on right")
+                        to_pad_right += (stitch.stitches_produced - stitch.stitches_consumed)
                     elif stitch.type == StitchType.DECREASE:
-                        to_pad_right -= 1
-                print(f"to pad left is: {to_pad_left}, to pad right is: {to_pad_right}")
+                        to_pad_right += (stitch.stitches_produced - stitch.stitches_consumed)
+                # print(f"to pad left is: {to_pad_left}, to pad right is: {to_pad_right}")
 
                 changed_rows = self._pad_all_shorter_rows(shorter_rows, to_pad_left, to_pad_right)
                 for key, value in changed_rows.items():
                     padded_symbols_rows[key] = value
-                    print(f"row updated, is now {value}")
+                    # print(f"row updated, is now {value}")
 
                 
             # 3. If the current row is shorter than the previous row,
             #   add padding to the current row on the oppsite side of the decrease
             if curr_unpadded_len < prev_unpadded_len:
-                print("Padding scenario 3")
+                # print("Padding scenario 3")
 
                 # Get all previous longer rows until encountering one that isn't
                 longer_rows: dict = {}
@@ -200,19 +201,27 @@ class Chart:
                 middle_point = math.ceil(curr_row.num_instructions / 2)
                 left_stiches = curr_row.stitches[:middle_point]
                 right_stiches = curr_row.stitches[middle_point:]
+                # if curr_row.number == 12: print(f"middle point is at {middle_point}. left stitches are {left_stiches}. right stitches are {right_stiches}")
                 to_pad_left = 0
                 to_pad_right = 0
                 for stitch in left_stiches:
                     if stitch.type == StitchType.INCREASE:
-                        to_pad_left -= 1
+                        to_pad_left -= (stitch.stitches_produced - stitch.stitches_consumed)
                     elif stitch.type == StitchType.DECREASE:
-                        to_pad_left += 1
+                        to_pad_left -= (stitch.stitches_produced - stitch.stitches_consumed)
                 for stitch in right_stiches:
                     if stitch.type == StitchType.INCREASE:
-                        to_pad_right -= 1
+                        to_pad_right -= (stitch.stitches_produced - stitch.stitches_consumed)
                     elif stitch.type == StitchType.DECREASE:
-                        to_pad_right += 1
-                # print(f"to pad left is: {to_pad_left}, to pad right is: {to_pad_right}")
+                        to_pad_right -= (stitch.stitches_produced - stitch.stitches_consumed)
+
+                # NOTE: Probably should be changed later
+                if not right_stiches:
+                    to_pad_right = int(to_pad_left / 2)
+                    to_pad_left = int(to_pad_left / 2)
+                if not left_stiches:
+                    to_pad_left = int(to_pad_right / 2)
+                    to_pad_right = int(to_pad_right / 2)
 
                 for _ in range(to_pad_left):
                     curr_symbols.insert(0, "X")
@@ -223,15 +232,13 @@ class Chart:
 
         return list(reversed(padded_symbols_rows))
 
-
-
     def render_grid(self):
         padded_symbols_grid = self._pad_grid()
         row_nums = [row.number for row in list(reversed(self.pattern.rows))]
         body = []
         border = self._build_border()
         for i, padded_symbols_row in enumerate(padded_symbols_grid):
-            body.append(self._build_row_2(padded_symbols_row, row_nums[i]))
+            body.append(self._build_row_from_symbols(padded_symbols_row, row_nums[i]))
 
         grid = ""
         for row in body:
