@@ -30,14 +30,20 @@ class LexerError(Exception):
         super().__init__(f"LEXING ERROR DETECTED:\n{message}")
 
 class TokenType(Enum):
-    WORD = "word"
-    NUMBER = "number"
-    SYMBOL = "symbol"
-    NEWLINE = "newline"
-    REPEAT_START = "repeat start"
-    REPEAT_END = "repeat end"
+    WORD = "WORD"
+    NUMBER = "NUMBER"
+
+    COMMA = "COMMA"
+    PERIOD = "PERIOD"
+    SEMICOLON = "SEMICOLON"
+    COLON = "COLON"
+    ASTERISK = "ASTERISK"
+    OPEN_GROUP = "OPEN_GROUP"
+    CLOSE_GROUP = "CLOSE_GROUP"
     
-    STITCH = "stitch"
+    NEWLINE = "NEWLINE"
+    
+    STITCH = "STITCH"
     EOI = "? end of input ?"
 
 @dataclass(frozen=True)
@@ -72,7 +78,6 @@ class Lexer:
     
     def scan(self) -> list[Token]:
         """Read the given text and break it down into primitive tokens"""
-        seen_times = 0
         primitive_tokens = []
         while self.pos < len(self.text):
             # print(f"char is {self._curr_char}")
@@ -99,19 +104,33 @@ class Lexer:
                 primitive_tokens.append(self._tokenize_primitive_number())
                 continue
 
-            # scan repeats
-            # if (self._curr_char == '(') or (self._curr_char == '*' and seen_times % 2 == 0):
-            #     seen_times += 1
-            #     primitive_tokens.append(Token(TokenType.REPEAT_START, self._curr_char))
-            #     continue
-
-            # if (self._curr_char == ')') or (self._curr_char == '*' and seen_times % 2 == 1):
-            #     seen_times += 1
-            #     primitive_tokens.append(Token(TokenType.REPEAT_END, self._curr_char))
-            #     continue
-
-            if self._curr_char in [',', ':', '*', ';']:
-                primitive_tokens.append(Token(TokenType.SYMBOL, self._curr_char))
+            # scan symbols
+            if self._curr_char == ',':
+                primitive_tokens.append(Token(TokenType.COMMA, self._curr_char))
+                self.advance()
+                continue
+            if self._curr_char == '.':
+                primitive_tokens.append(Token(TokenType.PERIOD, self._curr_char))
+                self.advance()
+                continue
+            if self._curr_char == ';':
+                primitive_tokens.append(Token(TokenType.SEMICOLON, self._curr_char))
+                self.advance()
+                continue
+            if self._curr_char == ':':
+                primitive_tokens.append(Token(TokenType.COLON, self._curr_char))
+                self.advance()
+                continue
+            if self._curr_char == '*':
+                primitive_tokens.append(Token(TokenType.ASTERISK, self._curr_char))
+                self.advance()
+                continue
+            if self._curr_char in ['(', '[']:
+                primitive_tokens.append(Token(TokenType.OPEN_GROUP, self._curr_char))
+                self.advance()
+                continue
+            if self._curr_char in [')', ']']:
+                primitive_tokens.append(Token(TokenType.CLOSE_GROUP, self._curr_char))
                 self.advance()
                 continue
             
@@ -182,4 +201,11 @@ class Lexer:
     
     def tokenize(self) -> list[Token]:
         primitive_tokens = self.scan()
-        return self.combine(primitive_tokens)
+        complex_tokens = self.combine(primitive_tokens)
+        # strip leading or trailing newlines
+        if complex_tokens[0].type == TokenType.NEWLINE:
+            complex_tokens.pop(0)
+        if complex_tokens[-1].type == TokenType.NEWLINE:
+            complex_tokens.pop()
+        
+        return complex_tokens

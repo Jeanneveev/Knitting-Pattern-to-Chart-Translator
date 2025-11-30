@@ -5,19 +5,22 @@ Grammar
 
 start           = pattern , ? end of input ? ;
 pattern         = [cast_on] , ( stitch_sequence | [ row , { ? newline ? , row } ] ) ;
-cast_on         = "cast on", ? integer ? , "stitches" | "st" | "sts" ;
+cast_on         = "cast on" | "caston" | "CO" , ? integer ? , "stitches" | "st" | "sts" ;
 row             = "row" , ? integer ? ":" , stitch_sequence ;
 stitch_sequence = repeat | stitch , {"," , repeat | stitch } ;
-repeat          = "*" , stitch_sequence , "*" , [";" , "repeat" , "from" , "*" , "to" , "*" , ? integer ? , "times"] ;
+repeat          = ( "*" , stitch_sequence , "*" , [ ";" , "repeat" , "from" , "*" , "to" , "*" , ? integer ? , "times" ] ) |
+                  ( OPEN_GROUP , stitch_sequence , CLOSE_GROUP , ( [ "x" , ? integer ? ] ) | ( [ ? integer ? , "times" ] ) ) ;
 stitch          = STITCH_TYPE , ? integer ? ;
 STITCH_TYPE     = "k" | "p" ;
+OPEN_GROUP        = "(" | "[" ;
+CLOSE_GROUP      = ")" | "]"
 
 ? integer ? : Represents a sequence of one or more digits (0 - 9). Examples include 0, 17, and 987.
 ? newline ? : Represents a newline ("/n") or some other kind of line divider
 """
 
 from src.domain.ast.nodes import StitchNode, RepeatNode, RowNode, PartNode
-from src.domain.parser.lexer import Lexer, TokenType
+from src.domain.parser.lexer import Lexer, Token, TokenType
 
 class ParserError(Exception): 
     """Exception raised for errors during the parsing process"""
@@ -44,7 +47,8 @@ class Parser:
         except StopIteration:   #if there is no next token, you're on the EOI
             self._curr_token = None
 
-    def expect_value(self, expected_token_values:list[str])->str:
+    # Check attribute, consumes if included, errors if not
+    def expect_value(self, expected_token_values:list[str]) -> Token:
         """Checks if the current token matches the given expected value,
         if so, advances to the next token, else, error
         """
@@ -53,44 +57,73 @@ class Parser:
             expected_tokens_str = \
                 ", ".join([f'"{token}"' for token in expected_token_values])
             message = (f'Found the token: {token_found_str}\n'
-                       f'But was expecting one of: {expected_tokens_str}')
+                       f'But was expecting one of: [{expected_tokens_str}]')
             raise ParserError(message)
         
         original_curr_token = self._curr_token
         self.advance()
         return original_curr_token
     
-    def expect_type(self, expected_token_types:list[TokenType]) -> str:
+    def expect_type(self, expected_token_types:list[TokenType]) -> Token:
         """Checks if the current token matches the given expected token type,
         if so, advances to the next token, else error
         """
         if self._curr_token.type not in expected_token_types:
-            token_found_str = f'"{self._curr_token.type.name}"'
-            expected_tokens_str = \
+            token_found_type_name = f'{self._curr_token.type.name}'
+            expected_token_types_str = \
                 ", ".join([f'"{token.name}"' for token in expected_token_types])
-            message = (f'Found the token: {token_found_str}\n'
-                       f'But was expecting one of: {expected_tokens_str}')
+            message = (f'Found token of type: "{token_found_type_name}"\n'
+                       f'But was expecting one of: [{expected_token_types_str}]')
             raise ParserError(message)
         
         original_curr_token = self._curr_token
         self.advance()
         return original_curr_token
     
-    def expect_series(self, expected_token_series:list[list[str]]) -> str:
+    def expect_series(self, expected_token_series:list[list[str]]) -> Token:
         """Checks if the next series of tokens matches the given series of expected tokens,
         if so, advances to the token after them, else, error.
         """
-        for expected_token_values in expected_token_series:
-            if self._curr_token.value not in expected_token_values:
-                token_found_str = f'"{self._curr_token}"'
-                expected_tokens_str = \
-                    ", ".join([f'"{token}"' for token in expected_token_values])
+        for expected_token_value in expected_token_series:
+            if self._curr_token.value not in expected_token_value:
+                token_found_str = f'"{self._curr_token.value}"'
+                expected_token_str = f'"{expected_token_value}"'
                 message = (f'Found the token: {token_found_str}\n'
-                        f'But was expecting one of: {expected_tokens_str}')
+                        f'But was expecting: {expected_token_str}')
                 raise ParserError(message)
             self.advance()
         last_token = self._curr_token
         return last_token
+    
+    # Check attribute, consumes and returns true if included, returns false if not
+    def is_value(self, values:list[str]) -> bool:
+        """Checks if the current token's value is in the list of given values.
+            If so, consumes token and returns True. Else, returns False.
+        """
+        if self._curr_token.value in values:
+            self.advance()
+            return True
+        
+        return False
+    
+    # Check attribute, returns true if included, returns false if not
+    def check_value(self, values:list[str]) -> bool:
+        """Checks if the current token's value is in the list of given values.
+            If so, returns True. Else, returns False.
+        """
+        if self._curr_token.value in values:
+            return True
+        
+        return False
+
+    def check_type(self, types:list[TokenType]) -> bool:
+        """Checks if the current token's type is in the list of given types.
+            If so, returns True. Else, returns False.
+        """
+        if self._curr_token.type in types:
+            return True
+        
+        return False
 
 
     ## PARSING METHODS
@@ -105,18 +138,18 @@ class Parser:
     def pattern(self) -> PartNode:
         caston = None
 
-        if self._curr_token.value == "cast":
+        if self.check_value(["cast", "caston", "co"]):
             caston = self.cast_on()
             # print(f"caston is {caston}")
             self._caston_num = caston
             self.advance() #skip the newline token
 
-        if self._curr_token.value in ["k", "p"]:  # One row, unlabeled
+        if self.check_type([TokenType.STITCH, TokenType.ASTERISK, TokenType.OPEN_GROUP]):  # One row, unlabeled
             instructions = self.stitch_sequence()
 
             assumed_caston = False
             if caston == None:
-                caston = len(instructions)  ## ERROR!!! MAY BE INCORRECT
+                caston = len(instructions)
                 assumed_caston = True
             return PartNode(caston=caston, rows=[RowNode(number=1, instructions=instructions)], assumed_caston=assumed_caston)
         
@@ -132,18 +165,25 @@ class Parser:
         # print(f"caston given. caston is {caston}")
         return PartNode(caston=caston, rows=result)         # Any number of rows, labeled, w/ caston
     
-    # cast_on = "cast on", ? integer ? , "stitches" | "st" | "sts"
+    # cast_on = "cast on" | "caston" | "CO" , ? integer ? , "stitches" | "st" | "sts"
     def cast_on(self):
-        self.expect_value(["cast"])
-        self.expect_value(["on"])
-        if not self._curr_token.type == TokenType.NUMBER:
-            wrong_token = f'"{self._curr_token}"' 
-            message = (f'Found the token: {wrong_token}\n'
-                    f'But was expecting an integer')
-            raise ParserError(message)
-        # else: ? integer ?
+        if self.is_value(["cast"]):
+            self.expect_value(["on"])   # cast is already consumed
+        elif not self.is_value(["caston", "co"]):
+            raise ParserError((
+                f"Found the token: \"{self._curr_token}\"\n"
+                "But was expecting \"caston\" or \"co\""
+            ))
+
+        if not self.check_type([TokenType.NUMBER]):
+            raise ParserError((
+                f"Found the token: \"{self._curr_token}\"\n"
+                "But was expecting an integer"
+            ))
+        # else, ? integer ?
         caston_num = int(self._curr_token.value)
         self.advance()  # move onto the next token
+
         self.expect_value(["stitches", "st", "sts"])
         return caston_num
     
@@ -161,10 +201,10 @@ class Parser:
         self.expect_value([":"])
         return RowNode(row_num, self.stitch_sequence())
     
-    # stitch_sequence = = repeat | stitch, {"," , repeat | stitch } ;
+    # stitch_sequence = repeat | stitch, {"," , repeat | stitch } ;
     def stitch_sequence(self) -> list[StitchNode]:
         result = []
-        if self._curr_token.value == "*": # repeat
+        if self.check_type([TokenType.ASTERISK, TokenType.OPEN_GROUP]): # repeat
             # print("repeat encountered")
             result.append(self.repeat())
         else:   # | stitch
@@ -173,34 +213,75 @@ class Parser:
         while self._curr_token.value == ",":
             # print("appending another stitch in sequence")
             self.advance()
-            if self._curr_token.value == "*": # repeat
+            if self.check_type([TokenType.ASTERISK, TokenType.OPEN_GROUP]): # repeat
                 # print("repeat encountered")
                 result.append(self.repeat())
             else:   # | stitch
                 result.extend(self.stitch())
         return result
     
-    # repeat = "*" , stitch_sequence , "*" , [";" , "repeat" , "from" , "*" , "to" , "*" , ? integer ? , "times"] ;
+    # repeat = 
+    #           "*" , stitch_sequence , "*" , [ ";" , "repeat" , [ "from" , "*" , "to" , "*" ] , ? integer ? , "times" ] ;
+    #           OPEN_GROUP , stitch_sequence, CLOSE_GROUP, [ "x", ? integer ? ] ;
+    #           OPEN_GROUP , stitch_sequence , CLOSE_GROUP , [ ? integer ? , "times" ] ;
     def repeat(self) -> RepeatNode:
         if self._caston_num is None:
             raise ParserError("Cannot parse repeat without caston number")
-        self.expect_value(["*"])
-        repeat_section = self.stitch_sequence()
-        # print(f"repeat section is: {repeat_section}")
-        self.expect_value(["*"])
-        # print("repeat section end")
-        if self._curr_token.value != ";":
-            # print("repeat ended")
-            return RepeatNode(repeat_section)
-        # print("repeat number specified")
-        self.expect_series([[";"], ["repeat"], ["from"], ["*"], ["to"], ["*"]])
+        
+        # Scenario 1
+        if self.check_type([TokenType.ASTERISK]):
+            self.advance()  # token already checked, can skip
+            repeat_section = self.stitch_sequence()
+            self.expect_type([TokenType.ASTERISK])
 
-        if not self._curr_token.type == TokenType.NUMBER:
-            raise ParserError(f"Expected an integer, recieved {self._curr_token}")
-        num_repeats = int(self._curr_token.value)
-        self.advance()
-        self.expect_value(["times"])
+            # implicit repeat
+            if self._curr_token.type != TokenType.SEMICOLON:
+                return RepeatNode(repeat_section)
+            
+            # explicit repeat
+            self.expect_series([[";"], ["repeat"]])
+            if self.check_value(["from"]):
+                self.expect_series([["from"], ["*"], ["to"], ["*"]])
+
+            if not self._curr_token.type == TokenType.NUMBER:
+                raise ParserError(f"Expected an integer, recieved {self._curr_token}")
+            
+            num_repeats = int(self._curr_token.value)
+            self.advance()
+            self.expect_value(["times"])
+        
+        # Scenario 2
+        elif self._curr_token.type == TokenType.OPEN_GROUP:
+            self.advance()
+            repeat_section = self.stitch_sequence()
+            self.expect_type([TokenType.CLOSE_GROUP])
+            
+            # implicit repeat (scenario 2 & 3)
+            if not self.check_type([TokenType.WORD, TokenType.NUMBER]):
+                return RepeatNode(repeat_section)
+            
+            # explicit repeat
+            elif self.check_value(["x"]):
+                self.advance()
+                if not self._curr_token.type == TokenType.NUMBER:
+                    raise ParserError(f"Expected an integer, recieved {self._curr_token}")
+                num_repeats = int(self._curr_token.value)
+                self.advance()
+                return RepeatNode(repeat_section, num_repeats)
+
+            # Scenario 3
+            elif self.check_type([TokenType.NUMBER]):
+                num_repeats = int(self._curr_token.value)
+                self.advance()
+                self.expect_value(["times"])
+
+            else:
+                raise ParserError(f"Expected ")
+        else:
+            raise ParserError(f"Expected the start of a repeat, received {self._curr_token}")
+        
         return RepeatNode(repeat_section, num_times=num_repeats)
+
 
     # stitch = STITCH_TYPE , ? integer ? ;
     def stitch(self) -> list[StitchNode]:
