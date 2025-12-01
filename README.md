@@ -21,12 +21,19 @@ Multiple lines can be entered by just not closing the quotation marks like:
 ```
 pattern_to_chart parse "cast on 10 sts
 row 1: k10
-row 2: k3, p4, k3"
+row 2: k3, p4, k3
+"
 ```
 
 Repeats can be entered using the following formats:
 ```
-pattern_to_chart parse "row 1: k1, *k2, p2*; repeat from * to * 5 times, k1"
+pattern_to_chart parse "cast on 12 stitches
+row 1: k1, *k2, p2*; repeat from * to * 5 times, k1"
+
+# OR
+
+pattern_to_chart parse "cast on 12 sts
+row 1: k1, (k2, p2) x 5"
 ```
 OR
 ```
@@ -39,5 +46,9 @@ Currently, only the following stitches are supported:
 - Knit (k)
 - Purl (p)
 - Yarn Over (yo)
+- Knit in Front and Back (kfb)
 - Knit 2 Together (k2tog)
+- Purl 2 Together (p2tog)
 - Slip Slip Knit (ssk)
+- Slip Slip Purl (ssp)
+- Slip 2, Knit 1, Pass 2 Slipped Stitches Over (s2kp2)
