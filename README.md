@@ -17,7 +17,7 @@ You'll need:
 Stitches are entered using their abbreviations as a comma separated string like:
 `pattern_to_chart parse "k2, p2, k2"`
 
-Multiple lines can be entered by just not closing the quotation marks like:
+Rows must be entered on separate lines and start with "row x" like:
 ```
 pattern_to_chart parse "cast on 10 sts
 row 1: k10
