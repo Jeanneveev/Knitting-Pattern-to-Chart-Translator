@@ -203,9 +203,17 @@ class Lexer:
         primitive_tokens = self.scan()
         complex_tokens = self.combine(primitive_tokens)
         # strip leading or trailing newlines
-        if complex_tokens[0].type == TokenType.NEWLINE:
-            complex_tokens.pop(0)
-        if complex_tokens[-1].type == TokenType.NEWLINE:
-            complex_tokens.pop()
+        while True:
+            if complex_tokens[0].type == TokenType.NEWLINE:
+                complex_tokens.pop(0)
+            else:
+                break
+
+        while True:
+            if complex_tokens[-2].type == TokenType.NEWLINE:    # -1 is EOI
+                complex_tokens.pop(-2)
+            else:
+                break
         
+        # print(f"In Lexer - tokens are {complex_tokens}")
         return complex_tokens

@@ -10,37 +10,18 @@ You'll need:
 
 ## Installation
 1. Navigate to the root folder of the project
-2. Run `python3 setup.py install`
-3. The CLI app can now be run with `pattern_to_chart parse "enter pattern here"`
+2. Download the requirements using `pip install -r requirements.txt`
+3. Run `python3 setup.py install` to install the CLI app
+4. The CLI app can now be run with `pattern_to_chart start`
 
 ## Using the App
-Stitches are entered using their abbreviations as a comma separated string like:
-`pattern_to_chart parse "k2, p2, k2"`
+When the app is started, you can follow the prompts to be able to enter your pattern.
 
-Rows must be entered on separate lines and start with "row x" like:
-```
-pattern_to_chart parse "cast on 10 sts
-row 1: k10
-row 2: k3, p4, k3
-"
-```
+NOTE:
+- Stitches are entered using their abbreviations as a comma separated list like: k2, p2, k, p
 
-Repeats can be entered using the following formats:
-```
-pattern_to_chart parse "cast on 12 stitches
-row 1: k1, *k2, p2*; repeat from * to * 5 times, k1"
-
-# OR
-
-pattern_to_chart parse "cast on 12 sts
-row 1: k1, (k2, p2) x 5"
-```
-OR
-```
-pattern_to_chart parse "cast on 12 stitches,
-row 1: k, *k2, p2*, k"
-```
-If the latter is used, the number of cast on stitches must be stated.
+- Repeats can be entered using the following formats:
+    - "\*k2, p2\*; repeat from \* to \* 5 times" OR "(k2, p2) x 5" OR "\*k2, p2\*"
 
 Currently, only the following stitches are supported:
 - Knit (k)

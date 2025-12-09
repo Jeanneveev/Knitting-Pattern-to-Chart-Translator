@@ -3,6 +3,7 @@ from src.infrastructure.cli.cli_input_adapter import CLIAdapter
 from src.adapters.chart_adapter import ChartAdapter
 from src.adapters.parser_adapter import ParserAdapter
 from src.application.pattern_service import PatternService
+from src.infrastructure.cli.cli_app import main
 
 @click.group()
 def cli():
@@ -28,7 +29,13 @@ def parse(chart_only, key_only, pattern:str):
         output = cli_adapter.run(pattern)
 
     click.echo(output)
+
+@click.command(name="start")
+def start():
+    main()
+
 cli.add_command(parse)
+cli.add_command(start)
 
 if __name__ == "__main__":
     cli()

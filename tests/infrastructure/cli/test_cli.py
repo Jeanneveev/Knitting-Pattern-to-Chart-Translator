@@ -1,9 +1,11 @@
 import subprocess
 import unittest
+from click.testing import CliRunner
 from src.adapters.chart_adapter import ChartAdapter
 from src.adapters.parser_adapter import ParserAdapter
 from src.application.pattern_service import PatternService
 from src.infrastructure.cli.cli_input_adapter import CLIAdapter
+from src.infrastructure.cli.cli import start
 
 class TestCLIAdapter(unittest.TestCase):
     def test_can_generate_ascii_chart_from_adapter(self):
@@ -66,7 +68,7 @@ class TestCLIAdapter(unittest.TestCase):
             "+-----------------+--------+-----------+-----------+\n"
             "|    Yarn Over    |   yo   |     O     |     O     |\n"
             "+-----------------+--------+-----------+-----------+\n"
-            "| Knit 2 Together |  k2tog |     /     |     /     |\n"
+            "| Knit 2 Together |  k2tog |     /     |     /.    |\n"
             "+-----------------+--------+-----------+-----------+\n"
         )
         
@@ -143,6 +145,39 @@ class TestCLI(unittest.TestCase):
         actual_output = output.stdout.strip()+"\n"
         self.assertEqual(expected_output, actual_output)
 
+    def test_can_generate_ascii_chart_and_key_from_prompts(self):
+        self.maxDiff = None
+
+        runner = CliRunner()
+        answers = ["Y", "3", "K, p, k", "q", "y"]
+        inputs = ""
+        for answ in answers:
+            inputs += answ + "\n"
+        output = runner.invoke(start, input=inputs)
+
+        # print("STDOUT:", output.stdout)
+        # print("STDERR:", output.stderr)
+        # print("RETURN CODE:", output.exit_code)
+
+        self.assertEqual(0, output.exit_code)
+        expected_output = (
+            "Chart:\n"
+            "---+---+---+---+---\n"
+            "   |   | - |   | 1 \n"
+            "---+---+---+---+---\n"
+            "\n"
+            "Key:\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Name | Abbrev | RS Symbol | WS Symbol |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Knit |    k   |           |     -     |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Purl |    p   |     -     |           |\n"
+            "+------+--------+-----------+-----------+\n"
+        )
+        actual_output = output.stdout.strip()+"\n"
+        self.assertIn(expected_output, actual_output)    
+
 class TestCLIPackage(unittest.TestCase):
     def test_can_generate_ascii_chart_from_cli_package(self):
         output = subprocess.run(
@@ -192,6 +227,45 @@ class TestCLIPackage(unittest.TestCase):
         )
         actual_output = output.stdout.strip()+"\n"
         self.assertEqual(expected_output, actual_output)
+
+    def test_can_generate_ascii_chart_and_key_from_package_prompts(self):
+        self.maxDiff = None
+
+        runner = CliRunner()
+        answers = ["Y", "3", "p, k2, P2, k", "q", "y"]
+        inputs = ""
+        for answ in answers:
+            inputs += answ + "\n"
+        output = subprocess.run(
+            ["pattern_to_chart", "start"],
+            input=inputs,
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        # print("STDOUT:", output.stdout)
+        # print("STDERR:", output.stderr)
+        # print("RETURN CODE:", output.exit_code)
+
+        self.assertEqual(0, output.returncode)
+        expected_output = (
+            "Chart:\n"
+            "---+---+---+---+---+---+---+---\n"
+            "   |   | - | - |   |   | - | 1 \n"
+            "---+---+---+---+---+---+---+---\n"
+            "\n"
+            "Key:\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Name | Abbrev | RS Symbol | WS Symbol |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Purl |    p   |     -     |           |\n"
+            "+------+--------+-----------+-----------+\n"
+            "| Knit |    k   |           |     -     |\n"
+            "+------+--------+-----------+-----------+\n"
+        )
+        actual_output = output.stdout.strip()+"\n"
+        self.assertIn(expected_output, actual_output)
 
 if __name__ == "__main__":
     unittest.main()
