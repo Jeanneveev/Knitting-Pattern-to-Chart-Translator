@@ -1,7 +1,7 @@
 # Knitting Pattern to Chart Translator
 This is a program to help create knitting charts from knitting patterns.
 
-Currently, the application only allows for input of typed, structured knitting patterns for items knitted flat and outputs ASCII charts.
+Currently, the application only allows for input of patterns for items knitted flat and outputs ASCII charts.
 
 # Getting Started
 ## Prerequisites
@@ -11,11 +11,12 @@ You'll need:
 ## Installation
 1. Navigate to the root folder of the project
 2. Download the requirements using `pip install -r requirements.txt`
-3. Run `python3 setup.py install` to install the CLI app
+3. Run `pip install .` to install the CLI app
 4. The CLI app can now be run with `pattern_to_chart start`
 
 ## Using the App
 When the app is started, you can follow the prompts to be able to enter your pattern.
+Once the pattern is confirmed, the chart and key will be printed out.
 
 NOTE:
 - Stitches are entered using their abbreviations as a comma separated list like: k2, p2, k, p
