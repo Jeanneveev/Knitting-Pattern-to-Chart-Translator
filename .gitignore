@@ -1,4 +1,5 @@
 .venv/
+design-notes/
 build/
 *.egg-info/
 

@@ -16,7 +16,8 @@ You'll need:
 
 ## Using the App
 When the app is started, you can follow the prompts to be able to enter your pattern.
-Once the pattern is confirmed, the chart and key will be printed out.
+Once the pattern is confirmed, the chart and key will be printed out. This looks like:
+![Example of pattern_to_chart CLI app in use](./assets/images/CLI_example_image.png)
 
 NOTE:
 - Stitches are entered using their abbreviations as a comma separated list like: k2, p2, k, p
