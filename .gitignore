@@ -1,6 +1,6 @@
 .venv/
-design-notes/
 build/
+design-notes/domain_model.md
 *.egg-info/
 
 **/__pycache__/
