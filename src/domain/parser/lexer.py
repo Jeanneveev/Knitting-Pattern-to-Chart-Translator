@@ -80,7 +80,6 @@ class Lexer:
         """Read the given text and break it down into primitive tokens"""
         primitive_tokens = []
         while self.pos < len(self.text):
-            # print(f"char is {self._curr_char}")
             # scan newlines
             if self._curr_char == '\n':
                 primitive_tokens.append(Token(TokenType.NEWLINE, '\n'))
@@ -94,13 +93,11 @@ class Lexer:
 
             # scan letter sequences
             if self._curr_char.isalpha():
-                # print("word found")
                 primitive_tokens.append(self._tokenize_primitive_word())
                 continue
 
             # scan number sequences
             if self._curr_char.isdigit():
-                # print("number found")
                 primitive_tokens.append(self._tokenize_primitive_number())
                 continue
 

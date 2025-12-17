@@ -1,4 +1,4 @@
-"""Holds semantic logic and constant attribute value checking"""
+"""Holds semantic logic and constant attribute value checking for the entities resulting from the parser"""
 
 from dataclasses import dataclass
 from enum import Enum

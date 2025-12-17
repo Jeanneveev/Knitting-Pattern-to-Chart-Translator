@@ -19,7 +19,7 @@ CLOSE_GROUP      = ")" | "]"
 ? newline ? : Represents a newline ("/n") or some other kind of line divider
 """
 
-from src.domain.ast.nodes import StitchNode, RepeatNode, RowNode, PartNode
+from src.domain.parser.ast.nodes import StitchNode, RepeatNode, RowNode, PartNode
 from src.domain.parser.lexer import Lexer, Token, TokenType
 
 class ParserError(Exception): 

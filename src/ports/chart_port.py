@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from src.domain.model.model import Part
+from src.domain.pattern.entities.model import Part
 
 class ChartPort(ABC):
     def __init__(self):

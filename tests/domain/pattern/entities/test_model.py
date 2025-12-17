@@ -1,5 +1,5 @@
 import unittest
-from src.domain.model.model import Stitch, Repeat, Row, Part, StitchType
+from src.domain.pattern.entities.model import Stitch, Repeat, Row, Part, StitchType
 
 class TestStitch(unittest.TestCase):
     def test_stitch_type_has_limited_values(self):

@@ -1,43 +1,43 @@
-from src.domain.services.make_pattern import Pattern, ExpandedRow
-from src.domain.model.model import Stitch, StitchType
+from src.domain.pattern.make_pattern import Pattern, ExpandedRow
+from src.domain.pattern.entities.model import Stitch, StitchType
 import math
 
 class Chart:
     def __init__(self, pattern:Pattern):
         self.pattern = pattern
 
-    def get_row_symbols(self, row_num:int) -> list[str]:
-        """Get the symbols of a row in the pattern by its row number"""
-        ## NOTE: odd rows are on the right side and use rs symbols
-        # while even rows are on the wrong side and use ws symbols.
-        if row_num % 2 == 1:  #right-side, display in reverse
-            # print("right-side")
-            row = self.pattern.get_row(row_num)
-            symbols = row.get_symbols_rs()
-            symbols.reverse()
-            return symbols
-        else:   #wrong-side, display normally
-            # print("wrong-side")
-            row = self.pattern.get_row(row_num)
-            symbols = row.get_symbols_ws()
-            return symbols
+    # def get_row_symbols(self, row_num:int) -> list[str]:
+    #     """Get the symbols of a row in the pattern by its row number"""
+    #     ## NOTE: odd rows are on the right side and use rs symbols
+    #     # while even rows are on the wrong side and use ws symbols.
+    #     if row_num % 2 == 1:  #right-side, display in reverse
+    #         # print("right-side")
+    #         row = self.pattern.get_row(row_num)
+    #         symbols = row.get_symbols_rs()
+    #         symbols.reverse()
+    #         return symbols
+    #     else:   #wrong-side, display normally
+    #         # print("wrong-side")
+    #         row = self.pattern.get_row(row_num)
+    #         symbols = row.get_symbols_ws()
+    #         return symbols
         
-    def _get_max_item_length(self) -> int:
-        """Get the longest item in the chart +2 for padding"""
-        symbols_used = self.pattern.get_symbols_used()
-        max_sym_len = 0
+    # def _get_max_item_length(self) -> int:
+    #     """Get the longest item in the chart +2 for padding"""
+    #     symbols_used = self.pattern.get_symbols_used()
+    #     max_sym_len = 0
         
-        for symbol in symbols_used:
-            sym_len = len(symbol)
-            if "\\" in symbol:
-                sym_len - 1
-            max_sym_len = max(sym_len, max_sym_len)
+    #     for symbol in symbols_used:
+    #         sym_len = len(symbol)
+    #         if "\\" in symbol:
+    #             sym_len - 1
+    #         max_sym_len = max(sym_len, max_sym_len)
 
-        last_row_num = self.pattern.rows[-1].number
-        longest_item = max(max_sym_len, len(str(last_row_num)))
-        longest_item += 2    # for the spacing on either side
+    #     last_row_num = self.pattern.rows[-1].number
+    #     longest_item = max(max_sym_len, len(str(last_row_num)))
+    #     longest_item += 2    # for the spacing on either side
 
-        return longest_item
+    #     return longest_item
         
     def _build_border(self) -> str:
         # Calculate many dashes there should be per item
@@ -52,19 +52,19 @@ class Chart:
 
         return border + "\n"
     
-    def _pad_item(self, symbol:str):
-        item_len = self._get_max_item_length()
-        sym_len = len(symbol)
-        to_pad = item_len - sym_len # always < 2
+    # def _pad_item(self, symbol:str):
+    #     item_len = self._get_max_item_length()
+    #     sym_len = len(symbol)
+    #     to_pad = item_len - sym_len # always < 2
 
-        padded_item = symbol
-        for i in range(to_pad):
-            if i % 2 == 0:
-                padded_item = " " + padded_item
-            else:
-                padded_item = padded_item + " "
+    #     padded_item = symbol
+    #     for i in range(to_pad):
+    #         if i % 2 == 0:
+    #             padded_item = " " + padded_item
+    #         else:
+    #             padded_item = padded_item + " "
 
-        return padded_item
+    #     return padded_item
     
     def _build_row_from_symbols(self, symbols:list[str], row_num:int) -> str:
         # print(f"building row {row_num}")
@@ -86,20 +86,20 @@ class Chart:
 
         return result + "\n"
     
-    def _check_padding_sides(self, symbols:list[str]) -> dict:
-        """Get the count on each side of all, if any, padding stitches in the given row"""
-        all_padding = {"left":0, "right":0}
-        # NOTE: The index of where the Xs stop is also the number of Xs there are
-        all_padding["left"] = next(i for i, symbol in enumerate(symbols) if symbol != "X")
-        all_padding["right"] = next(i for i, symbol in enumerate(list(reversed(symbols))) if symbol != "X")
+    # def _check_padding_sides(self, symbols:list[str]) -> dict:
+    #     """Get the count on each side of all, if any, padding stitches in the given row"""
+    #     all_padding = {"left":0, "right":0}
+    #     # NOTE: The index of where the Xs stop is also the number of Xs there are
+    #     all_padding["left"] = next(i for i, symbol in enumerate(symbols) if symbol != "X")
+    #     all_padding["right"] = next(i for i, symbol in enumerate(list(reversed(symbols))) if symbol != "X")
         
-        return all_padding
+    #     return all_padding
 
     def _pad_all_shorter_rows(self, shorter_rows:dict[int, list[str]], to_pad_left, to_pad_right) -> dict:
         result = {}
         for i, short_row_padded_symbols in shorter_rows.items():
             for _ in range(to_pad_left):
-                    short_row_padded_symbols.insert(0, "X")
+                short_row_padded_symbols.insert(0, "X")
             for _ in range(to_pad_right):
                 short_row_padded_symbols.insert(len(short_row_padded_symbols), "X")    
 
@@ -249,7 +249,7 @@ class Chart:
         # print(f"grid is:\n {grid}")
         return grid
 
-    
+    ## KEY
     def _get_column_width(self, contents:list[str]) -> int:
         """Get the width of the longest value in the column"""
         max_width = 0

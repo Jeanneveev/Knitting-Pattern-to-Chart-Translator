@@ -1,7 +1,7 @@
 import unittest
 from src.domain.parser.lexer import Token, TokenType
 from src.domain.parser.parser import Parser, ParserError
-from src.domain.ast.nodes import StitchNode, RepeatNode, RowNode, PartNode
+from src.domain.parser.ast.nodes import StitchNode, RepeatNode, RowNode, PartNode
 
 class TestParserHelpers(unittest.TestCase):
     def test_can_expect_value_given_single_value(self):

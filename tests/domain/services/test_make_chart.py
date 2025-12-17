@@ -1,7 +1,7 @@
 import unittest
 from src.domain.services.make_chart import Chart
-from src.domain.services.make_pattern import ExpandedRow, Pattern
-from src.domain.model.model import Stitch
+from src.domain.pattern.make_pattern import ExpandedRow, Pattern
+from src.domain.pattern.entities.model import Stitch
 
 class TestChart(unittest.TestCase):
     def test_can_get_symbols_of_right_side_row(self):

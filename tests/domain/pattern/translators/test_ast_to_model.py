@@ -1,7 +1,7 @@
 import unittest
-from src.domain.ast.nodes import StitchNode, RepeatNode, RowNode, PartNode
-from src.domain.model.ast_translator import ASTtoModelTranslator
-from src.domain.model.model import Stitch, Repeat, Row, Part
+from src.domain.parser.ast.nodes import StitchNode, RepeatNode, RowNode, PartNode
+from src.domain.pattern.translators.ast_to_model import ASTtoModelTranslator
+from src.domain.pattern.entities.model import Stitch, Repeat, Row, Part
 
 class ASTTranslatorTest(unittest.TestCase):
     def test_can_translate_stitch_node(self):
