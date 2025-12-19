@@ -17,6 +17,9 @@ class Stitch:
         if self.abbrev == "":
             raise ValueError("Stitch abbreviation must be a non-empty string")
     
+    def __repr__(self):
+        return f"Stitch({self.abbrev})"
+
     # The current dictionary of stitch abbreviations and their names and symbols
     STITCH_BY_ABBREV = {
         "k":    {"type": "reg",  "stitches_consumed": 1, "stitches_produced": 1, "rs": " ",   "ws": "-",   "name": "knit"},
@@ -80,6 +83,16 @@ class Repeat:
         if (self.elements == other.elements) and (self.num_times == other.num_times) and (self.stitches_after == other.stitches_after):
             return True
         return False
+    
+    def __repr__(self):
+        result = f"Repeat({self.elements}"
+        if self.has_num_times:
+            result += f", {self.num_times}"
+        if self.stitches_after is not None:
+            result += f", {self.stitches_after}"
+        result += ")"
+
+        return result
 
 class Row:
     def __init__(self, number:int, instructions:list[Stitch | Repeat]):
@@ -106,6 +119,9 @@ class Row:
         
         if (self.number == other.number) and (self.instructions == other.instructions):
             return True
+        
+    def __repr__(self):
+        return f"Row({self.number}, {self.instructions})"
     
 class Part:
     def __init__(self, caston:int, rows:list[Row], assumed_caston:bool = False):
@@ -124,7 +140,10 @@ class Part:
                 raise ValueError((
                     f"Row numbers must be unique and sequential. "
                     f"Row number {i-1} is {prev_row_num} and row number {i} is {row.number}"
+                    f"Rows were: {rows}"
                 ))
+            
+            row_numbers.append(row.number)
 
         self.caston = caston
         self.rows = rows

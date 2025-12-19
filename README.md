@@ -1,7 +1,7 @@
 # Knitting Pattern to Chart Translator
 This is a program to help create knitting charts from knitting patterns.
 
-Currently, the application only allows for input of patterns for items knitted flat and outputs ASCII charts.
+Currently, the application only allows for input of patterns for rectangular items knitted flat and outputs ASCII charts.
 
 # Getting Started
 ## Prerequisites
