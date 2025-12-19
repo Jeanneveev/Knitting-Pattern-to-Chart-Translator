@@ -4,7 +4,7 @@ from copy import deepcopy
 import math
 from dataclasses import dataclass
 from enum import Enum
-from src.domain.pattern.entities import Pattern, ExpandedRow, Stitch, StitchType
+from src.domain.pattern.entities import Pattern, ExpandedRow, Stitch
 
 class CellType(Enum):
     EMPTY = "empty"
@@ -20,7 +20,6 @@ class Cell:
 
         self.type = type
         self.symbol = symbol
-        self.offset = None
 
     def __eq__(self, other):
         if not isinstance(other, Cell):
@@ -119,9 +118,11 @@ class ChartRow:
         
         return all_padding
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class RowAnalysis:
     row:ExpandedRow
+    left_offset:int = None
+    right_offset:int = None
     
     @property
     def ordered_stitches(self):
@@ -133,10 +134,6 @@ class RowAnalysis:
             ordered_stitches = self.row.stitches
         
         return ordered_stitches
-
-    @property
-    def width(self):
-        return self.row.num_instructions
     
     @property
     def left_stitches(self):
@@ -167,6 +164,21 @@ class RowAnalysis:
         return sum(right_deltas)
 
 class Chart:
+    def set_left_offsets(self, row_analyses:list[RowAnalysis]):
+        total_left_offset = 0
+        for row_analysis in row_analyses:
+            total_left_offset += row_analysis.left_growth
+            row_analysis.left_offset = total_left_offset
+            # row_analysis.left_extent = total_left_offset
+        return row_analyses
+
+    def set_right_offsets(self, row_analyses:list[RowAnalysis]):
+        total_right_offset = 0
+        for row_analysis in row_analyses:
+            total_right_offset += row_analysis.right_growth
+            row_analysis.right_offset = total_right_offset
+        return row_analyses
+
     def __init__(self, pattern:Pattern):
         self.pattern = pattern
         
@@ -179,6 +191,8 @@ class Chart:
 
             row_analysis = RowAnalysis(row)
             row_analyses.append(row_analysis)
+        row_analyses = self.set_left_offsets(row_analyses)
+        row_analyses = self.set_right_offsets(row_analyses)
 
         self.rows = rows
         self.row_analyses = row_analyses
@@ -194,20 +208,22 @@ class Chart:
     @property
     def max_left(self):
         """Get the longest left half row length"""
-        left_lengths:list[int] = []
-        for row_analysis in self.row_analyses:
-            left_lengths.append(len(row_analysis.left_stitches))
+        # left_lengths:list[int] = []
+        # for row_analysis in self.row_analyses:
+        #     left_lengths.append(len(row_analysis.left_stitches))
         
-        return max(left_lengths)
+        # return max(left_lengths)
+        return max(ra.left_offset for ra in self.row_analyses)
     
     @property
     def max_right(self):
         """Get the longest right half row length"""
-        right_lengths:list[int] = []
-        for row_analysis in self.row_analyses:
-            right_lengths.append(len(row_analysis.right_stitches))
+        # right_lengths:list[int] = []
+        # for row_analysis in self.row_analyses:
+        #     right_lengths.append(len(row_analysis.right_stitches))
         
-        return max(right_lengths)
+        # return max(right_lengths)
+        return max(ra.right_offset for ra in self.row_analyses)
 
     def get_max_cell_length(self) -> int:
         """Get the length of the longest value of a cell"""
@@ -225,14 +241,14 @@ class Chart:
 
         return longest_item
     
+
     def pad_chart(self):
         for i, row in enumerate(self.rows):
             row_analysis:RowAnalysis = self.row_analyses[i]
             print(f"row {row.number}")
-            left_padding = self.max_left - len(row_analysis.left_stitches)
+            left_padding = row_analysis.left_offset - self.max_left
             print(f"max left is: {self.max_left}, left padding is: {left_padding}")
-            print(f"left stitches are: {row_analysis.left_stitches}")
-            right_padding = self.max_right - len(row_analysis.right_stitches)
+            right_padding = row_analysis.right_offset - self.max_right
             print(f"max right is: {self.max_right}, right padding is: {right_padding}")
 
             row.pad_row(left_padding, right_padding)

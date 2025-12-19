@@ -37,12 +37,12 @@ class ExpandedRow:
         return end_st_count
     
     @property
-    def ended_longer(self):
-        return self.end_st_count > self.start_st_count
+    def is_rs(self):
+        return self.number % 2 == 1
     
     @property
-    def ended_shorter(self):
-        return self.end_st_count < self.start_st_count
+    def is_ws(self):
+        return self.number % 2 == 0
 
     def get_symbols_rs(self) -> list[str]:
         """Return the right-side symbols of each stitch in the row"""

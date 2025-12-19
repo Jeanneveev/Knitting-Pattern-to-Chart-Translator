@@ -4,7 +4,7 @@ from copy import deepcopy
 import math
 from dataclasses import dataclass
 from enum import Enum
-from src.domain.pattern.entities import Pattern, ExpandedRow, Stitch, StitchType
+from src.domain.pattern.entities import Pattern, ExpandedRow, Stitch
 
 class CellType(Enum):
     EMPTY = "empty"
@@ -20,7 +20,6 @@ class Cell:
 
         self.type = type
         self.symbol = symbol
-        self.offset = None
 
     def __eq__(self, other):
         if not isinstance(other, Cell):
@@ -91,6 +90,7 @@ class ChartRow:
     
     @property
     def width(self) -> int:
+        # print(f"cells are {self.cells}")
         return len(self.cells)
     
     @property
@@ -119,9 +119,14 @@ class ChartRow:
         
         return all_padding
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class RowAnalysis:
     row:ExpandedRow
+    # NOTE: Consider the chart as starting on the right-hand side of a graph
+    #   the start point is the number of cells leftward from that line the row starts
+    #   the end point the the number of cells leftward from that line the row ends
+    start_point:int = None
+    end_point:int = None
     
     @property
     def ordered_stitches(self):
@@ -133,10 +138,6 @@ class RowAnalysis:
             ordered_stitches = self.row.stitches
         
         return ordered_stitches
-
-    @property
-    def width(self):
-        return self.row.num_instructions
     
     @property
     def left_stitches(self):
@@ -165,8 +166,41 @@ class RowAnalysis:
             right_deltas.append(stitch.stitches_produced - stitch.stitches_consumed)
 
         return sum(right_deltas)
+    
+    @property
+    def grows_left(self) -> bool:   # odd rows grow left
+        return self.row.number % 2 == 1
+    
+    @property
+    def grows_right(self) -> bool:
+        return self.row.number % 2 == 0
 
 class Chart:
+    def set_start_and_end_points(self):
+        for i, curr_row in enumerate(self.rows):
+            print(f"row {curr_row.number}")
+            # find start and enpoints
+            if i == 0:
+                self.row_analyses[i].start_point = 0
+                self.row_analyses[i].end_point = curr_row.width
+                print(f"start point is 0, end point is {curr_row.width}")
+                continue
+
+            curr_ra = self.row_analyses[i]
+            prev_ra = self.row_analyses[i-1]
+            prev_row = self.rows[i-1]
+            # if the previous row grew left, it grew positively and the current row grows negatively, else, the reverse
+            if prev_ra.grows_left:
+                curr_ra.start_point = prev_ra.start_point + prev_row.width
+                curr_ra.end_point = curr_ra.start_point - curr_row.width
+            else:
+                # TODO: NEEDS TO BE CHECKED
+                curr_ra.start_point = prev_ra.start_point - prev_row.width
+                curr_ra.end_point = curr_ra.start_point + curr_row.width
+
+            
+            print(f"start point is: {curr_ra.start_point}, end point is: {curr_ra.end_point}")
+
     def __init__(self, pattern:Pattern):
         self.pattern = pattern
         
@@ -182,6 +216,7 @@ class Chart:
 
         self.rows = rows
         self.row_analyses = row_analyses
+        self.set_start_and_end_points()
 
     @property
     def width(self) -> int:
@@ -208,6 +243,14 @@ class Chart:
             right_lengths.append(len(row_analysis.right_stitches))
         
         return max(right_lengths)
+    
+    @property
+    def chart_left(self):
+        return max(ra.end_point for ra in self.row_analyses)
+    
+    @property
+    def chart_right(self):
+        return min(ra.end_point for ra in self.row_analyses)
 
     def get_max_cell_length(self) -> int:
         """Get the length of the longest value of a cell"""
@@ -225,14 +268,28 @@ class Chart:
 
         return longest_item
     
-    def pad_chart(self):
-        for i, row in enumerate(self.rows):
-            row_analysis:RowAnalysis = self.row_analyses[i]
-            print(f"row {row.number}")
-            left_padding = self.max_left - len(row_analysis.left_stitches)
-            print(f"max left is: {self.max_left}, left padding is: {left_padding}")
-            print(f"left stitches are: {row_analysis.left_stitches}")
-            right_padding = self.max_right - len(row_analysis.right_stitches)
-            print(f"max right is: {self.max_right}, right padding is: {right_padding}")
 
+    def pad_chart(self):
+        print(f"max left is {self.chart_left}, max right is {self.chart_right}")
+        for i, row in enumerate(self.rows):
+            ra:RowAnalysis = self.row_analyses[i]
+            print(f"row {row.number}")
+            # try:
+            #     delta = self.rows[i].width - self.rows[i-1].width
+            # except: # first row
+            #     delta = self.width - self.rows[i].width
+            # print(f"row width is: {self.rows[i].width} delta is: {delta}")
+
+            left_padding = self.max_left - len(ra.left_stitches)
+            right_padding = self.max_right - len(ra.right_stitches)
+            
+
+            if self.width > row.width:
+                print("needs padding")
+                if ra.grows_left:
+                    if ra.start_point < self.chart_right and ra.end_point < self.chart_right:
+                        right_padding = min(ra.start_point - self.max_right, ra.end_point - self.max_right)
+
+            print(f"left padding is: {left_padding}")
+            print(f"right padding is: {right_padding}")
             row.pad_row(left_padding, right_padding)
