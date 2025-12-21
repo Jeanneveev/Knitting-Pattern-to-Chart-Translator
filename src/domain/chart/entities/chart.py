@@ -1,238 +1,130 @@
-"""Holds semantic logic for the entities related to charts"""
-
-from copy import deepcopy
-import math
-from dataclasses import dataclass
 from enum import Enum
-from src.domain.pattern.entities import Pattern, ExpandedRow, Stitch, StitchType
+from src.domain.pattern.entities import Pattern, Stitch, StitchType, ExpandedRow
 
 class CellType(Enum):
-    EMPTY = "empty"
     STITCH = "stitch"
+    EMPTY = "empty"
 
+# NOTE: Remember that the numbers increase leftwards
 class Cell:
-    def __init__(self, type:CellType, symbol:str|None=None):
+    def __init__(self, symbol:str, start_point:int, end_point:int, type:CellType=CellType.STITCH):
         if type == CellType.EMPTY:
             symbol = "X"
-        
-        if type == CellType.STITCH and symbol is None:
-            raise ValueError("Stitch cells must be initialized with a symbol")
 
-        self.type = type
         self.symbol = symbol
-        self.offset = None
+        self.start_point = start_point
+        self.end_point = end_point
+        self.type = type
 
     def __eq__(self, other):
         if not isinstance(other, Cell):
             return False
-        
-        if (self.type == other.type) and (self.symbol == other.symbol):
+        if (self.symbol == other.symbol and
+            self.start_point == other.start_point and
+            self.end_point == other.end_point and
+            self.type == other.type
+        ):
             return True
         return False
     
     def __repr__(self):
-        return f"Cell({self.symbol})"
-
-    # NOTE: Maybe should move to render/
-    def pad_cell(self, num_spaces:int):
-        """Pad the cell's value with spaces"""
-        padded = self.symbol
-        for i in range(num_spaces):
-            if i % 2 == 0:
-                padded = " " + padded
-            else:
-                padded = padded + " "
-        
-        return padded
+        return f"Cell({self.symbol}, {self.start_point})"
 
 class ChartRow:
-    def arrange_rs_row(self, row:ExpandedRow) -> list[Cell]:
-        symbols = row.get_symbols_rs()
-        symbols.reverse()   # NOTE: right-side rows are displayed in reverse
-
-        cells:list[Cell] = []
-        for i, symbol in enumerate(symbols):
-            st_type_value = row.stitches[i].type.value
-            cells.append(Cell(CellType.STITCH, symbol))
-
-        return cells
-    
-    def arrange_ws_row(self, row:ExpandedRow) -> list[Cell]:
-        symbols = row.get_symbols_ws()
-
-        cells:list[Cell] = []
-        for i, symbol in enumerate(symbols):
-            st_type_value = row.stitches[i].type.value
-            cells.append(Cell(CellType.STITCH, symbol))
-
-        return cells
-
-    def __init__(self, row:ExpandedRow):
-        self.number = row.number
-        self.row = row
-
-        if row.number % 2 == 1:
-            cells = self.arrange_rs_row(row)
-        else:
-            cells = self.arrange_ws_row(row)
-            
-        self.cells:list[Cell] = cells
+    def __init__(self, number:int, cells:list[Cell]):
+        self.number = number
+        # TODO: Maybe add checking to confirm cell offset is in decreasing order
+        self.cells = cells
+        self.start_point = 0
+        self.end_point = len(cells)
+        self.width = len(cells)
 
     def __eq__(self, other):
         if not isinstance(other, ChartRow):
             return False
         
-        if (self.number == other.number) and (self.row == other.row) and (self.cells == other.cells):
+        if (self.number == other.number and
+            self.cells == other.cells and
+            self.start_point == other.start_point and
+            self.width == other.width
+        ):
             return True
         return False
     
     def __repr__(self):
         return f"ChartRow({self.number}, {self.cells})"
-    
-    @property
-    def width(self) -> int:
-        return len(self.cells)
-    
-    @property
-    def has_padding(self) -> bool:
-        return any(cell.type == CellType.EMPTY for cell in self.cells)
-    
-    # NOTE: Maybe move to render/
-    def pad_row(self, to_pad_left:int, to_pad_right:int):
-        """Modifies the ChartRow's cells to be padded on either side by the given amounts"""
-        padded = deepcopy(self.cells)
-        for _ in range(to_pad_left):
-            padded.insert(0, Cell(CellType.EMPTY))
-        for _ in range(to_pad_right):
-            padded.insert(len(padded), Cell(CellType.EMPTY))
-        
-        self.cells = padded
-
-        return padded
-    
-    def get_padding_counts(self) -> dict:
-        """Get the counts on each side of all, if any, padding cells in the row"""
-        all_padding = {"left": 0, "right": 0}
-        # NOTE: The index of where the Xs stop is also the number of Xs there are
-        all_padding["left"] = next(i for i, cell in enumerate(self.cells) if cell.type != CellType.EMPTY)
-        all_padding["right"] = next(i for i, cell in enumerate(list(reversed(self.cells))) if cell.type != CellType.EMPTY)
-        
-        return all_padding
-
-@dataclass(frozen=True)
-class RowAnalysis:
-    row:ExpandedRow
-    
-    @property
-    def ordered_stitches(self):
-        # Order stitches to get the correct left and right sides of the row
-        ordered_stitches:list[Stitch] = []
-        if self.row.number % 2 == 1:
-            ordered_stitches = list(reversed(self.row.stitches))
-        else:
-            ordered_stitches = self.row.stitches
-        
-        return ordered_stitches
-
-    @property
-    def width(self):
-        return self.row.num_instructions
-    
-    @property
-    def left_stitches(self):
-        middle_point = math.ceil(self.row.num_instructions / 2)
-        return self.ordered_stitches[:middle_point]
-    
-    @property
-    def right_stitches(self):
-        middle_point = math.ceil(self.row.num_instructions / 2)
-        return self.ordered_stitches[middle_point:]
-
-    @property
-    def left_growth(self):
-        """Get the amount of net stitch count change on the left side"""
-        left_deltas:list[int] = []
-        for stitch in self.left_stitches:
-            left_deltas.append(stitch.stitches_produced - stitch.stitches_consumed)
-
-        return sum(left_deltas)
-    
-    @property
-    def right_growth(self):
-        """Get the amount of net stitch count change on the right side"""
-        right_deltas:list[int] = []
-        for stitch in self.right_stitches:
-            right_deltas.append(stitch.stitches_produced - stitch.stitches_consumed)
-
-        return sum(right_deltas)
 
 class Chart:
+    def _build_rows(self, pattern:Pattern) -> list[ChartRow]:
+        """Creates right aligned ChartRows based on the given pattern"""
+        chart_rows:list[ChartRow] = []
+        for row in pattern.rows:
+            # print(f"Row {row.number}")
+            cells = []
+            stitches = row.stitches if row.is_rs else list(reversed(row.stitches))
+            for i, s in enumerate(stitches):
+                # print(f"Stitch {i} is: {s}")
+                symbol = s.symbol_rs if row.is_rs else s.symbol_ws
+                # NOTE: If I ever implement cables, this'll have to change
+                start_point = i
+                end_point = i + 1
+                cells.append(Cell(symbol, start_point, end_point))
+
+            chart_rows.append(ChartRow(row.number, cells))
+        
+        return chart_rows
+
     def __init__(self, pattern:Pattern):
         self.pattern = pattern
-        
-        # Build rows and row analyses
-        rows:list[ChartRow] = []
-        row_analyses:list[RowAnalysis] = []
-        for row in self.pattern.rows:
-            chart_row = ChartRow(row)
-            rows.append(chart_row)
-
-            row_analysis = RowAnalysis(row)
-            row_analyses.append(row_analysis)
-
+        rows = self._build_rows(pattern)
         self.rows = rows
-        self.row_analyses = row_analyses
+        self.height = len(rows)
+        self.width = pattern.get_max_length()
 
-    @property
-    def width(self) -> int:
-        return self.pattern.get_max_length()
-    
-    @property
-    def height(self) -> int:
-        return len(self.rows)
-    
-    @property
-    def max_left(self):
-        """Get the longest left half row length"""
-        left_lengths:list[int] = []
-        for row_analysis in self.row_analyses:
-            left_lengths.append(len(row_analysis.left_stitches))
+    def get_row(self, row_num:int) -> ChartRow:
+        result = None
+        for row in self.rows:
+            if row.number == row_num:
+                result = row
         
-        return max(left_lengths)
-    
-    @property
-    def max_right(self):
-        """Get the longest right half row length"""
-        right_lengths:list[int] = []
-        for row_analysis in self.row_analyses:
-            right_lengths.append(len(row_analysis.right_stitches))
+        if result is None:
+            raise ValueError(f"No chart row of number: {row_num} found")
         
-        return max(right_lengths)
+        return result
 
-    def get_max_cell_length(self) -> int:
-        """Get the length of the longest value of a cell"""
-        symbols_used = self.pattern.get_symbols_used()
+    def shift_row_left(self, row_num:int, amount:int):
+        """Shift a row to the left by the given amount"""
+        row = self.get_row(row_num)
+
+        if row.width + amount > self.width:
+            raise IndexError("Shift goes beyond chart bounds")
+
+        for cell in row.cells:
+            cell.start_point += amount
+            cell.end_point += amount
+
+    def shift_row_right(self, row_num:int, amount:int):
+        """Shift a row to the right by the given amount"""
+        row = self.get_row(row_num)
+
+        if row.cells[0].start_point - amount < 0:
+            raise IndexError("Shift goes beyond chart bounds")
+
+        for cell in row.cells:
+            cell.start_point -= amount
+            cell.end_point -= amount
+
+    def get_padded_row(self, row_num:int, width:int) -> ChartRow:
+        """Pad the given row with empty cells on either side until cells length equals given width"""
+        row = self.get_row(row_num)
+        row_start = row.cells[0].start_point
+        row_end = row.cells[-1].end_point
+
+        cells = row.cells
+        for i in range(0, row_start):
+            cells.insert(0, Cell("X", i, i+1, CellType.EMPTY))
         
-        max_sym_len = 0
-        for symbol in symbols_used:
-            sym_len = len(symbol)
-            if "\\" in symbol:
-                sym_len - 1
-            max_sym_len = max(sym_len, max_sym_len)
-        # Row number is also a cell value
-        last_row_number = self.pattern.rows[-1].number
-        longest_item = max(max_sym_len, len(str(last_row_number)))
+        for i in range(row_end, width):
+            cells.append(Cell("X", i, i+1, CellType.EMPTY))
 
-        return longest_item
-    
-    def pad_chart(self):
-        for i, row in enumerate(self.rows):
-            row_analysis:RowAnalysis = self.row_analyses[i]
-            print(f"row {row.number}")
-            left_padding = self.max_left - len(row_analysis.left_stitches)
-            print(f"max left is: {self.max_left}, left padding is: {left_padding}")
-            print(f"left stitches are: {row_analysis.left_stitches}")
-            right_padding = self.max_right - len(row_analysis.right_stitches)
-            print(f"max right is: {self.max_right}, right padding is: {right_padding}")
-
-            row.pad_row(left_padding, right_padding)
+        return ChartRow(row_num, cells)

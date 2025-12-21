@@ -1,272 +1,190 @@
 import unittest
 from src.domain.pattern.entities import Pattern, ExpandedRow, Stitch
-from src.domain.chart.entities.chart import Chart, ChartRow, Cell, CellType, CellStitchType
+from src.domain.chart.entities.chart import Chart, ChartRow, Cell, CellType
 from src.domain.renderer.ascii_renderer import ASCIIRender
 
-SYMBOL = CellType.STITCH
-EMPTY = CellType.EMPTY
-
-R = CellStitchType.REGULAR
-I = CellStitchType.INCREASE
 
 class TestASCIIChart(unittest.TestCase):
-    def test_can_pad_row_of_grid_1(self):
-        self.maxDiff = None
-        
-        row_1 = ExpandedRow(1, [Stitch("k"), Stitch("kfb")])
-        row_2 = ExpandedRow(2, [Stitch("p"), Stitch("p"), Stitch("p")])
-        pattern = Pattern([row_1, row_2])
+    def test_can_create_padded_rows(self):
+        pattern = Pattern([
+            ExpandedRow(1, [
+                Stitch("kfb"), Stitch("k"), Stitch("k"), Stitch("kfb")
+            ]),
+            ExpandedRow(2, [
+                Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
+            ])
+        ])
         chart = Chart(pattern)
-        ascii_chart = ASCIIRender(chart)
+        renderer = ASCIIRender(chart)
+
+        """ Chart should look like:
+            "---+---+---+---+---+---+---+---\n"
+            " 2 |   |   |   |   |   |   |   \n"
+            "---+---+---+---+---+---+---+---\n"
+            "   | X | X | Y |   |   | Y | 1 \n"
+            "---+---+---+---+---+---+---+---\n"
+        """
+
+        renderer._add_padding()
+        
+        expected_row_1 = ChartRow(1, [
+            Cell("Y", 0, 1),
+            Cell(" ", 1, 2), Cell(" ", 2, 3),
+            Cell("Y", 3, 4),
+            Cell("X", 4, 5, CellType.EMPTY), Cell("X", 5, 6, CellType.EMPTY)
+        ])
+        expected_row_2 = ChartRow(2, [
+            Cell(" ", 0, 1), Cell(" ", 1, 2),
+            Cell(" ", 2, 3), Cell(" ", 3, 4),
+            Cell(" ", 4, 5), Cell(" ", 5, 6),
+        ])
+
+        actual = renderer.padded_rows
+        actual_row_1 = actual[0]
+        actual_row_2 = actual[1]
+
+        self.assertEqual(expected_row_1, actual_row_1)
+        self.assertEqual(expected_row_2, actual_row_2)
+
+    def test_padded_rows_set_on_initialization(self):
+        pattern = Pattern([
+            ExpandedRow(1, [Stitch("k"), Stitch("yo")]),
+            ExpandedRow(2, [Stitch("p"), Stitch("p")]),
+            ExpandedRow(3, [Stitch("k2tog")])
+        ])
+        renderer = ASCIIRender(Chart(pattern))
+
+        """ Chart should look like:
+            "---+---+----+---\n"
+            "   | X | / | 3 \n"
+            "---+---+----+---\n"
+            " 2 |   |    |   \n"
+            "---+---+----+---\n"
+            "   | O |    | 1 \n"
+            "---+---+----+---\n"
+        """
+
+        expected_row_1 = ChartRow(1, [Cell(" ", 0, 1), Cell("O", 1, 2)])
+        expected_row_2 = ChartRow(2, [Cell(" ", 0, 1), Cell(" ", 1, 2)])
+        expected_row_3 = ChartRow(3, [Cell("/", 0, 1), Cell("X", 1, 2, CellType.EMPTY)])
+        actual = renderer.padded_rows
+        actual_row_1 = actual[0]
+        actual_row_2 = actual[1]
+        actual_row_3 = actual[2]
+
+        self.assertEqual(expected_row_1, actual_row_1)
+        self.assertEqual(expected_row_2, actual_row_2)
+        self.assertEqual(expected_row_3, actual_row_3)
+
+    def test_can_get_longest_row_symbol_length(self):
+        pattern = Pattern([
+            ExpandedRow(1, [Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k")]),
+            ExpandedRow(2, [Stitch("k"), Stitch("ssk"), Stitch("k")])
+        ])
+        renderer = ASCIIRender(Chart(pattern))
+
+        expected = 2    # ssk ws = \.
+        actual = renderer._get_max_row_sym_len(2)
+
+        self.assertEqual(expected, actual)
+
+    def test_can_get_longest_symbol_length(self):
+        pattern = Pattern([
+            ExpandedRow(1, [Stitch("k"), Stitch("yo")]),
+            ExpandedRow(2, [Stitch("k2tog")])
+        ])
+        renderer = ASCIIRender(Chart(pattern))
+
+        expected = 2    # k2tog ws = /.
+        actual = renderer._get_max_chart_sym_len()
+
+        self.assertEqual(expected, actual)
+
+    def test_can_get_longest_symbol_length_despite_double_escape(self):
+        pattern = Pattern([ExpandedRow(1, [Stitch("k"), Stitch("ssk")])])
+        renderer = ASCIIRender(Chart(pattern))
+
+        expected = 1 
+        actual = renderer._get_max_chart_sym_len()
+
+        self.assertEqual(expected, actual)
+
+    def test_can_build_border_to_size(self):
+        pattern = Pattern([
+            ExpandedRow(1, [Stitch("k"), Stitch("yo"), Stitch("k")]),
+            ExpandedRow(2, [Stitch("k"), Stitch("k"), Stitch("k")])
+        ])
+        renderer = ASCIIRender(Chart(pattern))
+
+        expected = "---+---+---+---+---\n"
+        actual = renderer._build_border()
+
+        self.assertEqual(expected, actual)
+
+    def test_can_evenly_pad_symbol(self):
+        pattern = Pattern([ExpandedRow(1, [Stitch("p"), Stitch("p")])])
+        renderer = ASCIIRender(Chart(pattern))
+
+        expected = " - "
+        actual = renderer._pad_item("-")
+
+        self.assertEqual(expected, actual)
+
+    def test_can_unevenly_pad_symbol(self):
+        pattern = Pattern([ExpandedRow(1, [Stitch("p2tog"), Stitch("p")])])
+        renderer = ASCIIRender(Chart(pattern))
+
+        expected = "  - "
+        actual = renderer._pad_item("-")
+
+        self.assertEqual(expected, actual)
+
+    def test_can_build_row_symbols(self):
+        pattern = Pattern([
+            ExpandedRow(2, [
+                Stitch("k"), Stitch("k"), Stitch("p")
+            ]),
+            ExpandedRow(3, [
+                Stitch("k"), Stitch("k"), Stitch("k")
+            ]),
+        ])
+        renderer = ASCIIRender(Chart(pattern))
 
         """ Chart should look like:
             "---+---+---+---+---\n"
-            " 2 |   |   |   |   \n"
+            "   |   |   |   | 3 \n"
             "---+---+---+---+---\n"
-            "   | X | Y |   | 1 \n"
+            " 2 | - | - |   |   \n"
             "---+---+---+---+---\n"
         """
 
-        expected_row_1 = [Cell(EMPTY), Cell(SYMBOL, "Y", I), Cell(SYMBOL, " ", R)]
-        expected_row_2 = [Cell(SYMBOL, " ", R), Cell(SYMBOL, " ", R), Cell(SYMBOL, " ", R)]
-        actual = ascii_chart._pad_grid()
-        actual_row_1 = actual[0].cells
-        actual_row_2 = actual[1].cells
+        expected = " 2 | - | - |   |   \n"
+        actual = renderer._build_row(2)
 
-        self.assertEqual(expected_row_1, actual_row_1, f"\nexpected row 1 was:\n{expected_row_1}\nactual was:\n{actual_row_1}")
-        self.assertEqual(expected_row_2, actual_row_2, f"\nexpected row 2 was:\n{expected_row_2}\nactual was:\n{actual_row_2}")
+        self.assertEqual(expected, actual)
 
-    # def test_can_pad_row_of_grid_2(self):
-    #     self.maxDiff = None
+    def test_can_build_ascii_grid(self):
+        self.maxDiff = None
+
+        pattern = Pattern([
+            ExpandedRow(1, [Stitch("k"), Stitch("p"), Stitch("kfb")]),
+            ExpandedRow(2, [Stitch("p"), Stitch("p"), Stitch("k"), Stitch("k")]),
+            ExpandedRow(3, [Stitch("ssk"), Stitch("k2tog")])
+        ])
+        renderer = ASCIIRender(Chart(pattern))
         
-    #     row_1 = ExpandedRow(1, [Stitch("k")])
-    #     row_2 = ExpandedRow(2, [Stitch("yo"), Stitch("p")])
-    #     pattern = Pattern([row_1, row_2])
-    #     chart = Chart(pattern)
-    #     ascii_chart = ASCIIRender(chart)
+        expected = (
+            "---+---+---+---+---+---\n"
+            "   | X | X | / | \\ | 3 \n"
+            "---+---+---+---+---+---\n"
+            " 2 |   |   | - | - |   \n"
+            "---+---+---+---+---+---\n"
+            "   | X | Y | - |   | 1 \n"
+            "---+---+---+---+---+---\n"
+        )
+        actual = renderer.render_ascii_chart()
 
-    #     """ Chart should look like:
-    #         "---+---+---+---\n"
-    #         " 2 | O |   |   \n"
-    #         "---+---+---+---\n"
-    #         "   | X |   | 1 \n"
-    #         "---+---+---+---\n"
-    #     """
-
-    #     expected_row_1 = [Cell(EMPTY), Cell(SYMBOL, " ", REGULAR)]
-    #     expected_row_2 = [Cell(SYMBOL, "O", INCREASE), Cell(SYMBOL, " ", REGULAR)]
-    #     actual = ascii_chart._pad_grid()
-    #     actual_row_1 = actual[0].cells
-    #     actual_row_2 = actual[1].cells
-
-    #     self.assertEqual(expected_row_1, actual_row_1, f"\nexpected row 1 was:\n{expected_row_1}\nactual was:\n{actual_row_1}")
-    #     self.assertEqual(expected_row_2, actual_row_2, f"\nexpected row 2 was:\n{expected_row_2}\nactual was:\n{actual_row_2}")
-
-    # def test_can_pad_row_of_grid_3(self):
-    #     self.maxDiff = None
-        
-    #     row_1 = ExpandedRow(1, [Stitch("kfb")])
-    #     row_2 = ExpandedRow(2, [Stitch("p"), Stitch("p")])
-    #     pattern = Pattern([row_1, row_2])
-    #     chart = Chart(pattern)
-    #     ascii_chart = ASCIIRender(chart)
-
-    #     """ Chart should look like:
-    #         "---+---+---+---\n"
-    #         " 2 |   | O |   \n"
-    #         "---+---+---+---\n"
-    #         "   |   | X | 1 \n"
-    #         "---+---+---+---\n"
-    #     """
-
-    #     expected_row_1 = [Cell(SYMBOL, "Y", CellStitchType.INCREASE), Cell(EMPTY)]
-    #     expected_row_2 = [Cell(SYMBOL, " ", CellStitchType.REGULAR), Cell(SYMBOL, " ", CellStitchType.REGULAR)]
-    #     actual = ascii_chart._pad_grid()
-    #     actual_row_1 = actual[0].cells
-    #     actual_row_2 = actual[1].cells
-
-    #     self.assertEqual(expected_row_1, actual_row_1, f"\nexpected row 1 was:\n{expected_row_1}\nactual was:\n{actual_row_1}")
-    #     self.assertEqual(expected_row_2, actual_row_2, f"\nexpected row 2 was:\n{expected_row_2}\nactual was:\n{actual_row_2}")
-
-
-    # def test_can_pad_symmetrical_chart_increasing(self):
-    #     # row 1: kfb, k2, kfb
-    #     # row 2: p6
-    #     # row 3: kfb, k4, kfb
-    #     # row 4: p8
-
-    #     self.maxDiff = None
-
-    #     row_1 = ExpandedRow(5, [
-    #         Stitch("kfb"), Stitch("k"), Stitch("k"), Stitch("kfb")
-    #     ])
-    #     row_2 = ExpandedRow(6, [
-    #         Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
-    #     ])
-    #     row_3 = ExpandedRow(7, [
-    #         Stitch("kfb"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("kfb")
-    #     ])
-    #     row_4 = ExpandedRow(8, [
-    #         Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
-    #     ])
-    #     pattern = Pattern([row_1, row_2, row_3, row_4])
-    #     chart = Chart(pattern)
-    #     ascii_chart = ASCIIRender(chart)
-
-    #     """ Chart should look like:
-    #         "---+---+---+---+---+---+---+---+---+---\n"
-    #         " 8 |   |   |   |   |   |   |   |   |   \n"
-    #         "---+---+---+---+---+---+---+---+---+---\n"
-    #         "   | X | Y |   |   |   |   | Y | X | 7 \n"
-    #         "---+---+---+---+---+---+---+---+---+---\n"
-    #         " 6 | X |   |   |   |   |   |   | X |   \n"
-    #         "---+---+---+---+---+---+---+---+---+---\n"
-    #         "   | X | X | Y |   |   | Y | X | X | 5 \n"
-    #         "---+---+---+---+---+---+---+---+---+---\n"
-    #     """
-    #     expected_row_1 = [
-    #         Cell(EMPTY), Cell(EMPTY),
-    #         Cell(SYMBOL, "Y", CellStitchType.INCREASE),
-    #         Cell(SYMBOL, " ", CellStitchType.REGULAR), Cell(SYMBOL, " ", CellStitchType.REGULAR),
-    #         Cell(SYMBOL, "Y", CellStitchType.INCREASE),
-    #         Cell(EMPTY), Cell(EMPTY)
-    #     ]
-    #     expected_row_2 = [
-    #         Cell(EMPTY),
-    #         Cell(SYMBOL, " ", CellStitchType.REGULAR), Cell(SYMBOL, " ", CellStitchType.REGULAR),
-    #         Cell(SYMBOL, " ", CellStitchType.REGULAR), Cell(SYMBOL, " ", CellStitchType.REGULAR),
-    #         Cell(SYMBOL, " ", CellStitchType.REGULAR), Cell(SYMBOL, " ", CellStitchType.REGULAR),
-    #         Cell(EMPTY)
-    #     ]
-    #     expected_row_3 = [
-    #         Cell(EMPTY),
-    #         Cell(SYMBOL, "Y", CellStitchType.INCREASE),
-    #         Cell(SYMBOL, " ", CellStitchType.REGULAR), Cell(SYMBOL, " ", CellStitchType.REGULAR),
-    #         Cell(SYMBOL, " ", CellStitchType.REGULAR), Cell(SYMBOL, " ", CellStitchType.REGULAR),
-    #         Cell(SYMBOL, "Y", CellStitchType.INCREASE),
-    #         Cell(EMPTY)
-    #     ]
-    #     expected_row_4 = [
-    #         Cell(SYMBOL, " ", CellStitchType.REGULAR), Cell(SYMBOL, " ", CellStitchType.REGULAR),
-    #         Cell(SYMBOL, " ", CellStitchType.REGULAR), Cell(SYMBOL, " ", CellStitchType.REGULAR),
-    #         Cell(SYMBOL, " ", CellStitchType.REGULAR), Cell(SYMBOL, " ", CellStitchType.REGULAR),
-    #         Cell(SYMBOL, " ", CellStitchType.REGULAR), Cell(SYMBOL, " ", CellStitchType.REGULAR),
-    #     ]
-
-    #     actual = ascii_chart._pad_grid()
-    #     actual_row_1 = actual[0].cells
-    #     actual_row_2 = actual[1].cells
-    #     actual_row_3 = actual[2].cells
-    #     actual_row_4 = actual[3].cells
-
-    #     self.assertEqual(expected_row_1, actual_row_1, f"\nexpected row 1 was:\n{expected_row_1}\nactual was:\n{actual_row_1}")
-    #     self.assertEqual(expected_row_2, actual_row_2, f"\nexpected row 2 was:\n{expected_row_2}\nactual was:\n{actual_row_2}")
-    #     self.assertEqual(expected_row_3, actual_row_3, f"\nexpected row 3 was:\n{expected_row_3}\nactual was:\n{actual_row_3}")
-    #     self.assertEqual(expected_row_4, actual_row_4, f"\nexpected row 4 was:\n{expected_row_4}\nactual was:\n{actual_row_4}")
-
-    # def test_can_pad_symmetrical_chart_increasing_2(self):
-    #     # row 1: k
-    #     # row 2: yo, k, yo
-    #     # row 3: k3
-    #     # row 4: yo, k3, yo
-    #     # row 5: k5
-
-
-
-    # def test_can_pad_symmetrical_chart_decreasing(self):
-    #     self.maxDiff = None
-    #     # row 1: ssk, k6, k2tog
-    #     # row 2: p8
-    #     # row 3: ssk, k4, k2tog
-    #     # row 4: p6
-    #     # row 5: ssk, k2, k2tog
-    #     pattern = Pattern([
-    #         ExpandedRow(1, [
-    #             Stitch("ssk"),
-    #             Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"),
-    #             Stitch("k2tog")
-    #         ]),
-    #         ExpandedRow(2, [
-    #             Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
-    #         ]),
-    #         ExpandedRow(3, [
-    #             Stitch("ssk"),
-    #             Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"),
-    #             Stitch("k2tog")
-    #         ]),
-    #         ExpandedRow(4, [
-    #             Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
-    #         ]),
-    #         ExpandedRow(5, [
-    #             Stitch("ssk"),
-    #             Stitch("k"), Stitch("k"),
-    #             Stitch("k2tog")
-    #         ])
-    #     ])
-    #     chart = Chart(pattern)
-    #     ascii_chart = ASCIIRender(chart)
-    
-    #     """ Chart should look like:
-    #         "---+---+---+---+---+---+---+---+---+---\n"
-    #         "   | X | X | / |   |   | \\ | X | X | 5 \n"
-    #         "---+---+---+---+---+---+---+---+---+---\n"
-    #         " 4 | X |   |   |   |   |   |   | X |   \n"
-    #         "---+---+---+---+---+---+---+---+---+---\n"
-    #         "   | X | / |   |   |   |   | \\ | X | 3 \n"
-    #         "---+---+---+---+---+---+---+---+---+---\n"
-    #         " 2 |   |   |   |   |   |   |   |   |   \n"
-    #         "---+---+---+---+---+---+---+---+---+---\n"
-    #         "   | / |   |   |   |   |   |   | \\ | 1 \n"
-    #         "---+---+---+---+---+---+---+---+---+---\n"
-    #     """
-    #     expected_row_1 = [
-    #         Cell(CellType.STITCH, "/", CellStitchType.DECREASE),
-    #         Cell(CellType.STITCH, " ", CellStitchType.REGULAR), Cell(CellType.STITCH, " ", CellStitchType.REGULAR),
-    #         Cell(CellType.STITCH, " ", CellStitchType.REGULAR), Cell(CellType.STITCH, " ", CellStitchType.REGULAR),
-    #         Cell(CellType.STITCH, " ", CellStitchType.REGULAR), Cell(CellType.STITCH, " ", CellStitchType.REGULAR),
-    #         Cell(CellType.STITCH, "\\", CellStitchType.DECREASE)
-    #     ]
-    #     expected_row_2 = [
-    #         Cell(CellType.STITCH, " ", CellStitchType.REGULAR), Cell(CellType.STITCH, " ", CellStitchType.REGULAR),
-    #         Cell(CellType.STITCH, " ", CellStitchType.REGULAR), Cell(CellType.STITCH, " ", CellStitchType.REGULAR),
-    #         Cell(CellType.STITCH, " ", CellStitchType.REGULAR), Cell(CellType.STITCH, " ", CellStitchType.REGULAR),
-    #         Cell(CellType.STITCH, " ", CellStitchType.REGULAR), Cell(CellType.STITCH, " ", CellStitchType.REGULAR)
-    #     ]
-    #     expected_row_3 = [
-    #         Cell(EMPTY),
-    #         Cell(CellType.STITCH, "/", CellStitchType.DECREASE),
-    #         Cell(CellType.STITCH, " ", CellStitchType.REGULAR), Cell(CellType.STITCH, " ", CellStitchType.REGULAR),
-    #         Cell(CellType.STITCH, " ", CellStitchType.REGULAR), Cell(CellType.STITCH, " ", CellStitchType.REGULAR),
-    #         Cell(CellType.STITCH, "\\", CellStitchType.DECREASE),
-    #         Cell(EMPTY)
-    #     ]
-    #     expected_row_4 = [
-    #         Cell(EMPTY),
-    #         Cell(CellType.STITCH, " ", CellStitchType.REGULAR), Cell(CellType.STITCH, " ", CellStitchType.REGULAR),
-    #         Cell(CellType.STITCH, " ", CellStitchType.REGULAR), Cell(CellType.STITCH, " ", CellStitchType.REGULAR),
-    #         Cell(CellType.STITCH, " ", CellStitchType.REGULAR), Cell(CellType.STITCH, " ", CellStitchType.REGULAR),
-    #         Cell(EMPTY)
-    #     ]
-    #     expected_row_5 = [
-    #         Cell(EMPTY), Cell(EMPTY),
-    #         Cell(CellType.STITCH, "/", CellStitchType.DECREASE),
-    #         Cell(CellType.STITCH, " ", CellStitchType.REGULAR), Cell(CellType.STITCH, " ", CellStitchType.REGULAR),
-    #         Cell(CellType.STITCH, "\\", CellStitchType.DECREASE),
-    #         Cell(EMPTY), Cell(EMPTY)
-    #     ]
-
-    #     actual = ascii_chart._pad_grid()
-    #     actual_row_1 = actual[0].cells
-    #     actual_row_2 = actual[1].cells
-    #     actual_row_3 = actual[2].cells
-    #     actual_row_4 = actual[3].cells
-    #     actual_row_5 = actual[4].cells
-
-    #     self.assertEqual(expected_row_1, actual_row_1, f"\nexpected row 1 was:\n{expected_row_1}\nactual was:\n{actual_row_1}")
-    #     self.assertEqual(expected_row_2, actual_row_2, f"\nexpected row 2 was:\n{expected_row_2}\nactual was:\n{actual_row_2}")
-    #     self.assertEqual(expected_row_3, actual_row_3, f"\nexpected row 3 was:\n{expected_row_3}\nactual was:\n{actual_row_3}")
-    #     self.assertEqual(expected_row_4, actual_row_4, f"\nexpected row 4 was:\n{expected_row_4}\nactual was:\n{actual_row_4}")
-    #     self.assertEqual(expected_row_5, actual_row_5, f"\nexpected row 5 was:\n{expected_row_5}\nactual was:\n{actual_row_5}")
+        self.assertEqual(expected, actual)
 
 if __name__ == "__main__":
     unittest.main()
