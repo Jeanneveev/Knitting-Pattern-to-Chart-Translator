@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Union
+from src.domain.stitch_by_abbrev import STITCH_BY_ABBREV
 
 class StitchType(Enum):
     REGULAR = "reg"
@@ -16,43 +17,30 @@ class Stitch:
     def __post_init__(self):
         if self.abbrev == "":
             raise ValueError("Stitch abbreviation must be a non-empty string")
-    
-    # The current dictionary of stitch abbreviations and their names and symbols
-    STITCH_BY_ABBREV = {
-        "k":    {"type": "reg",  "stitches_consumed": 1, "stitches_produced": 1, "rs": " ",   "ws": "-",   "name": "knit"},
-        "p":    {"type": "reg",  "stitches_consumed": 1, "stitches_produced": 1, "rs": "-",   "ws": " ",   "name": "purl"},
-        "yo":   {"type": "incr", "stitches_consumed": 0, "stitches_produced": 1, "rs": "O",   "ws": "O",   "name": "yarn over"},
-        "kfb":  {"type": "incr", "stitches_consumed": 1, "stitches_produced": 2, "rs": "Y",   "ws": "Y",   "name": "knit in front and back"},
-        "k2tog":{"type": "decr", "stitches_consumed": 2, "stitches_produced": 1, "rs": "/",   "ws": "/.",  "name": "knit 2 together"},
-        "p2tog":{"type": "decr", "stitches_consumed": 2, "stitches_produced": 1, "rs": "/.",  "ws": "/",   "name": "purl 2 together"},
-        "ssk":  {"type": "decr", "stitches_consumed": 2, "stitches_produced": 1, "rs": "\\",  "ws": "\\.", "name": "slip slip knit"},
-        "ssp":  {"type": "decr", "stitches_consumed": 2, "stitches_produced": 1, "rs": "\\.", "ws": "\\",  "name": "slip slip purl"},
-        "s2kp2":{"type": "decr", "stitches_consumed": 3, "stitches_produced": 1, "rs": "^",   "ws": "^",   "name": "slip 2, knit 1, pass 2 slipped stitches over"}
-    }
 
     @property
     def name(self) -> str:
-        return self.STITCH_BY_ABBREV[self.abbrev]["name"]
+        return STITCH_BY_ABBREV[self.abbrev]["name"]
     
     @property
     def type(self) -> StitchType:
-        return StitchType(self.STITCH_BY_ABBREV[self.abbrev]["type"])
+        return StitchType(STITCH_BY_ABBREV[self.abbrev]["type"])
     
     @property
     def stitches_consumed(self) -> int:
-        return self.STITCH_BY_ABBREV[self.abbrev]["stitches_consumed"]
+        return STITCH_BY_ABBREV[self.abbrev]["stitches_consumed"]
 
     @property
     def stitches_produced(self) -> int:
-        return self.STITCH_BY_ABBREV[self.abbrev]["stitches_produced"]
+        return STITCH_BY_ABBREV[self.abbrev]["stitches_produced"]
 
     @property
     def symbol_rs(self) -> str:
-        return self.STITCH_BY_ABBREV[self.abbrev]["rs"]
+        return STITCH_BY_ABBREV[self.abbrev]["rs"]
     
     @property
     def symbol_ws(self) -> str:
-        return self.STITCH_BY_ABBREV[self.abbrev]["ws"]
+        return STITCH_BY_ABBREV[self.abbrev]["ws"]
 
 class Repeat:
     def __init__(self, elements:List[Union[Stitch, "Repeat"]], num_times:int = None, stitches_after:int = None):

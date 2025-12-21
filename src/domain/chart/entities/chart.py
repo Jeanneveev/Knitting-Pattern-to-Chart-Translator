@@ -1,5 +1,6 @@
 from enum import Enum
-from src.domain.pattern.entities import Pattern, Stitch, StitchType, ExpandedRow
+from src.domain.pattern.entities import Pattern
+from src.domain.chart.entities.key import Key
 
 class CellType(Enum):
     STITCH = "stitch"
@@ -80,6 +81,7 @@ class Chart:
         self.rows = rows
         self.height = len(rows)
         self.width = pattern.get_max_length()
+        self.key = Key(pattern.get_symbols_used()).KEY_BY_SYMBOLS
 
     def get_row(self, row_num:int) -> ChartRow:
         result = None

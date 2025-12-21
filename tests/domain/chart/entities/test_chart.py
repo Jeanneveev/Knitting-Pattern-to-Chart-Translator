@@ -1,10 +1,7 @@
 import unittest
 from src.domain.pattern.entities import ExpandedRow, Stitch, ExpandedRow, Pattern
-from src.domain.chart.entities.chart import CellType, Cell, ChartRow, Chart, RowAnalysis
+from src.domain.chart.entities.chart import CellType, Cell, ChartRow, Chart
 
-
-STITCH = CellType.STITCH
-EMPTY = CellType.EMPTY
 class TestChartCell(unittest.TestCase):
     def test_cell_type_has_limited_values(self):
         cell_types = ["empty", "stitch"]
@@ -17,322 +14,321 @@ class TestChartCell(unittest.TestCase):
         self.assertEqual(f"'{invalid_type}' is not a valid CellType", str(err.exception))
 
     def test_empty_cells_have_automatic_value(self):
-        empty_cell = Cell(CellType.EMPTY)
-        self.assertEqual(empty_cell.symbol, "X", None)
-    
-    def test_stitch_cells_must_have_given_value(self):
-        try:
-            valid_cell = Cell(CellType.STITCH, " ")
-        except:
-            self.fail("Could not create cell")
-
-        with self.assertRaises(ValueError) as err:
-            Cell(CellType.STITCH)
-        self.assertEqual("Stitch cells must be initialized with a symbol", str(err.exception))
-
-    def test_cell_can_be_padded_evenly(self):
-        cell = Cell(CellType.STITCH, "-")
-
-        expected = " - "
-        actual = cell.pad_cell(2)
-
-        self.assertEqual(expected, actual)
-
-    def test_cell_can_be_padded_unevenly(self):
-        cell = Cell(CellType.STITCH, "-")
-
-        expected = "   -  "
-        actual = cell.pad_cell(5)
-
-        self.assertEqual(expected, actual)
-
-class TestChartRow(unittest.TestCase):
-    def test_can_build_rs_chart_row_on_initialization(self):
-        row = ExpandedRow(1, [Stitch("k"), Stitch("p")])
-        chart_row = ChartRow(row)
-
-        expected = [Cell(CellType.STITCH, "-"), Cell(CellType.STITCH, " ")]
-        actual = chart_row.cells
-
-        self.assertEqual(expected, actual)
-
-    def test_can_build_ws_chart_row_on_initialization(self):
-        row = ExpandedRow(2, [Stitch("k"), Stitch("p"), Stitch("yo")])
-        chart_row = ChartRow(row)
-
-        expected = [
-            Cell(CellType.STITCH, "-"),
-            Cell(CellType.STITCH, " "),
-            Cell(CellType.STITCH, "O")
-        ]
-        actual = chart_row.cells
-
-        self.assertEqual(expected, actual)
-
-    def test_can_get_chart_row_width(self):
-        row = ExpandedRow(2, [Stitch("k"), Stitch("p"), Stitch("yo")])
-        chart_row = ChartRow(row)
-
-        expected = 3
-        actual = chart_row.width
-
-        self.assertEqual(expected, actual)
-
-    def test_can_pad_only_left_side_of_chart_row(self):
-        row = ExpandedRow(1, [Stitch("k"), Stitch("p")])
-        chart_row = ChartRow(row)
-
-        expected = [
-            Cell(EMPTY), Cell(EMPTY),
-            Cell(STITCH, "-"), Cell(STITCH, " ")
-        ]
-        actual = chart_row.pad_row(2, 0)
-
-        self.assertEqual(expected, actual)
-
-    def test_can_pad_only_right_side_of_chart_row(self):
-        row = ExpandedRow(1, [Stitch("k"), Stitch("p")])
-        chart_row = ChartRow(row)
-
-        expected = [
-            Cell(STITCH, "-"), Cell(STITCH, " "),
-            Cell(EMPTY)
-        ]
-        actual = chart_row.pad_row(0, 1)
-
-        self.assertEqual(expected, actual)
-
-    def test_can_pad_both_sides_of_chart_row(self):
-        row = ExpandedRow(1, [Stitch("k"), Stitch("p")])
-        chart_row = ChartRow(row)
-
-        expected = [
-            Cell(EMPTY),
-            Cell(STITCH, "-"), Cell(STITCH, " "),
-            Cell(EMPTY), Cell(EMPTY), Cell(EMPTY)
-        ]
-        actual = chart_row.pad_row(1, 3)
-
-        self.assertEqual(expected, actual)
-
-    def test_padding_chart_row_modifies_cells(self):
-        row = ExpandedRow(1, [Stitch("k"), Stitch("p")])
-        chart_row = ChartRow(row)
-        chart_row.pad_row(1, 3)
-
-        expected = [
-            Cell(EMPTY),
-            Cell(STITCH, "-"), Cell(STITCH, " "),
-            Cell(EMPTY), Cell(EMPTY), Cell(EMPTY)
-        ]
-        actual = chart_row.cells
-
-        self.assertEqual(expected, actual)
-
-    def test_can_get_if_chart_row_has_padding(self):
-        row = ExpandedRow(1, [Stitch("k"), Stitch("p")])
-        chart_row = ChartRow(row)
-        chart_row.pad_row(1, 1)
-
-        expected = True
-        actual = chart_row.has_padding
-
-        self.assertEqual(expected, actual)
-    
-    def test_can_get_left_padding_counts(self):
-        row = ExpandedRow(1, [Stitch("k"), Stitch("p")])
-        chart_row = ChartRow(row)
-        chart_row.pad_row(1, 0)
-
-        expected = 1
-        actual = chart_row.get_padding_counts()["left"]
-
-        self.assertEqual(expected, actual)
-
-    def test_can_get_right_padding_counts(self):
-        row = ExpandedRow(1, [Stitch("k"), Stitch("p")])
-        chart_row = ChartRow(row)
-        chart_row.pad_row(0, 2)
-
-        expected = 2
-        actual = chart_row.get_padding_counts()["right"]
-
-        self.assertEqual(expected, actual)
-
-    def test_can_get_both_padding_counts(self):
-        row = ExpandedRow(1, [Stitch("k"), Stitch("p")])
-        chart_row = ChartRow(row)
-        chart_row.pad_row(3, 2)
-
-        expected = {"left": 3, "right": 2}
-        actual = chart_row.get_padding_counts()
-
-        self.assertEqual(expected, actual)
-
-class TestRowAnalysis(unittest.TestCase):
-    def test_can_get_ordered_stitches(self):
-        row_1 = ExpandedRow(1, [Stitch("k"), Stitch("yo")])
-        row_2 = ExpandedRow(2, [Stitch("k"), Stitch("yo")])
-        ra_1 = RowAnalysis(row_1)
-        ra_2 = RowAnalysis(row_2)
-
-        expected_1 = [Stitch("yo"), Stitch("k")]
-        expected_2 = [Stitch("k"), Stitch("yo")]
-        actual_1 = ra_1.ordered_stitches
-        actual_2 = ra_2.ordered_stitches
-
-        self.assertEqual(expected_1, actual_1)
-        self.assertEqual(expected_2, actual_2)
-
-    def test_can_get_left_growth(self):
-        row = ExpandedRow(1, [Stitch("k"), Stitch("kfb")])
-        row_analysis = RowAnalysis(row)
-
-        expected_l_growth = 1
-        actual_l_growth = row_analysis.left_growth
-
-        self.assertEqual(expected_l_growth, actual_l_growth)
-
-    def test_can_get_right_growth(self):
-        row = ExpandedRow(1, [Stitch("k"), Stitch("kfb")])
-        row_analysis = RowAnalysis(row)
-
-        expected_r_growth = 0
-        actual_r_growth = row_analysis.right_growth
-
-        self.assertEqual(expected_r_growth, actual_r_growth)
+        empty_cell = Cell("ANY", 0, 1, CellType.EMPTY)
+        self.assertEqual(empty_cell.symbol, "X")    
 
 class TestChart(unittest.TestCase):
-    def test_can_build_chart_rows_on_initialization(self):
-        pattern = Pattern([
-            ExpandedRow(1, [Stitch("k"), Stitch("k")]),
-            ExpandedRow(2, [Stitch("p"), Stitch("p")]),
-            ExpandedRow(3, [Stitch("k"), Stitch("k")])
-        ])
-        chart = Chart(pattern)
+    def test_chart_initializes_with_rows(self):
+        row_1 = ExpandedRow(1, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p"), Stitch("k")])
+        row_2 = ExpandedRow(2, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p"), Stitch("k")])
+        row_3 = ExpandedRow(3, [Stitch("k"), Stitch("k"), Stitch("p"), Stitch("p"), Stitch("k")])
+        chart = Chart(Pattern([row_1, row_2, row_3]))
 
-        expected = [ChartRow(pattern.rows[0]), ChartRow(pattern.rows[1]), ChartRow(pattern.rows[2])]
+        """ Chart should look like:
+            "---+---+---+---+---+---+---\n"
+            "   |   | - | - |   |   | 3 \n"
+            "---+---+---+---+---+---+---\n"
+            " 2 | - | - |   |   | - |   \n"
+            "---+---+---+---+---+---+---\n"
+            "   |   | - | - |   |   | 1 \n"
+            "---+---+---+---+---+---+---\n"
+        """
+
+        expected_row_1 = ChartRow(1, [
+            Cell(" ", 0, 1), Cell(" ", 1, 2),
+            Cell("-", 2, 3), Cell("-", 3, 4),
+            Cell(" ", 4, 5)
+        ])
+        expected_row_2 = ChartRow(2, [
+            Cell("-", 0, 1),
+            Cell(" ", 1, 2), Cell(" ", 2, 3),
+            Cell("-", 3, 4), Cell("-", 4, 5)
+        ])
+        expected_row_3 = ChartRow(3, [
+            Cell(" ", 0, 1), Cell(" ", 1, 2),
+            Cell("-", 2, 3), Cell("-", 3, 4),
+            Cell(" ", 4, 5)
+        ])
+
         actual = chart.rows
+        actual_row_1 = actual[0]
+        actual_row_2 = actual[1]
+        actual_row_3 = actual[2]
 
-        self.assertEqual(expected, actual)
+        self.assertEqual(expected_row_1, actual_row_1)
+        self.assertEqual(expected_row_2, actual_row_2)
+        self.assertEqual(expected_row_3, actual_row_3)
 
-    # def test_can_build_row_analyses_on_initialization(self):
-    #     r_1 = ExpandedRow(1, [Stitch("k"), Stitch("k")])
-    #     r_2 = ExpandedRow(2, [Stitch("p"), Stitch("p")])
-    #     r_3 = ExpandedRow(3, [Stitch("k"), Stitch("k")])
-    #     chart = Chart(Pattern([r_1, r_2, r_3]))
-
-    #     expected = [RowAnalysis(r_1, 0), RowAnalysis(r_2, 0), RowAnalysis(r_3, 0)]
-    #     actual = chart.row_analyses
-
-    #     self.assertEqual(expected, actual)
-
-    def test_can_get_chart_width(self):
-        pattern = Pattern([
-            ExpandedRow(1, [Stitch("k"), Stitch("k")]),
-            ExpandedRow(2, [Stitch("p"), Stitch("p"), Stitch("yo")]),
-        ])
-        chart = Chart(pattern)
-
-        expected = 3
-        actual = chart.width
-
-        self.assertEqual(expected, actual)
-
-    def test_can_get_chart_height(self):
-        pattern = Pattern([
-            ExpandedRow(1, [Stitch("k"), Stitch("k")]),
-            ExpandedRow(2, [Stitch("p"), Stitch("p"), Stitch("yo")]),
-        ])
-        chart = Chart(pattern)
-
-        expected = 2
-        actual = chart.height
-
-        self.assertEqual(expected, actual)
-
-    def test_can_maximum_row_left_width(self):
-        chart = Chart(Pattern([
-            ExpandedRow(1, [Stitch("k"), Stitch("k"), Stitch("yo")]),
-            ExpandedRow(2, [Stitch("kfb"), Stitch("yo"), Stitch("p"), Stitch("p")]),
-        ]))
-
-        expected = 2
-        actual = chart.max_left
-
-        self.assertEqual(expected, actual)
-
-    def test_can_maximum_row_right_width(self):
-        chart = Chart(Pattern([
-            ExpandedRow(1, [Stitch("k"), Stitch("k"), Stitch("yo")]),
-            ExpandedRow(2, [Stitch("kfb"), Stitch("yo"), Stitch("p"), Stitch("p"), Stitch("yo")]),
-        ]))
-
-        expected = 2
-        actual = chart.max_right
-
-        self.assertEqual(expected, actual)
-
-    def test_can_get_length_of_longest_cell_value(self):
-        pattern = Pattern([
-            ExpandedRow(1, [Stitch("k"), Stitch("k")]),
-            ExpandedRow(2, [Stitch("p"), Stitch("p")]),
-            ExpandedRow(3, [Stitch("ssp")])
-        ])
-        chart = Chart(pattern)
-
-        expected = 2    # ssp = \.
-        actual = chart.get_max_cell_length()
-
-        self.assertEqual(expected, actual)
-
-    def test_can_pad_chart(self):
-        self.maxDiff = None
-        
-        row_1 = ExpandedRow(1, [Stitch("k"), Stitch("kfb")])
-        row_2 = ExpandedRow(2, [Stitch("p"), Stitch("p"), Stitch("p")])
+    def test_chart_initializes_with_right_aligned_rows(self):
+        row_1 = ExpandedRow(3, [Stitch("kfb"), Stitch("k")])
+        row_2 = ExpandedRow(4, [Stitch("p"), Stitch("p"), Stitch("p")])
         pattern = Pattern([row_1, row_2])
         chart = Chart(pattern)
-        chart.pad_chart()
 
         """ Chart should look like:
             "---+---+---+---+---\n"
-            " 2 |   |   |   |   \n"
+            " 4 |   |   |   |   \n"
             "---+---+---+---+---\n"
-            "   | X | Y |   | 1 \n"
+            "   | X |   | Y | 3 \n"
             "---+---+---+---+---\n"
         """
 
-        expected_row_1 = [Cell(EMPTY), Cell(STITCH, "Y"), Cell(STITCH, " ")]
-        expected_row_2 = [Cell(STITCH, " "), Cell(STITCH, " "), Cell(STITCH, " ")]
-        actual_row_1 = chart.rows[0].cells
-        actual_row_2 = chart.rows[1].cells
+        expected_row_1 = ChartRow(3, [Cell("Y", 0, 1), Cell(" ", 1, 2)])
+        expected_row_2 = ChartRow(4, [Cell(" ", 0, 1), Cell(" ", 1, 2), Cell(" ", 2, 3)])
+
+        actual = chart.rows
+        actual_row_1 = actual[0]
+        actual_row_2 = actual[1]
 
         self.assertEqual(expected_row_1, actual_row_1)
         self.assertEqual(expected_row_2, actual_row_2)
 
-    def test_can_pad_chart_2(self):
+    def test_chart_initializes_with_key_dictionary(self):
+        row_1 = ExpandedRow(3, [Stitch("kfb"), Stitch("k")])
+        row_2 = ExpandedRow(4, [Stitch("p"), Stitch("p"), Stitch("p")])
+        chart = Chart(Pattern([row_1, row_2]))
+
+        expected = {
+            " ": {"rs": "knit", "ws": "purl"},
+            "Y": {"rs": "knit in front and back", "ws": "knit in front and back"}
+        }
+        actual = chart.key
+
+        self.assertEqual(expected, actual)
+
+    def test_can_get_chart_row_by_number(self):
+        row_1 = ExpandedRow(3, [Stitch("kfb"), Stitch("k")])
+        row_2 = ExpandedRow(4, [Stitch("p"), Stitch("p"), Stitch("p")])
+        pattern = Pattern([row_1, row_2])
+        chart = Chart(pattern)
+
+        expected = ChartRow(3, [Cell("Y", 0, 1), Cell(" ", 1, 2)])
+        actual = chart.get_row(3)
+
+        self.assertEqual(expected, actual)
+
+    def test_cant_get_nonexistent_chart_row_number(self):
         row_1 = ExpandedRow(1, [Stitch("kfb"), Stitch("k")])
         row_2 = ExpandedRow(2, [Stitch("p"), Stitch("p"), Stitch("p")])
         pattern = Pattern([row_1, row_2])
         chart = Chart(pattern)
-        chart.pad_chart()
+
+        with self.assertRaises(ValueError) as err:
+            chart.get_row(3)
+
+        self.assertEqual("No chart row of number: 3 found", str(err.exception))
+
+    def test_can_shift_specific_row_left(self):
+        pattern = Pattern([
+            ExpandedRow(5, [
+                Stitch("kfb"), Stitch("k"), Stitch("k"), Stitch("kfb")
+            ]),
+            ExpandedRow(6, [
+                Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
+            ]),
+            ExpandedRow(7, [
+                Stitch("kfb"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("kfb")
+            ]),
+            ExpandedRow(8, [
+                Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
+            ])
+        ])
+        chart = Chart(pattern)
+
+        """ Chart should look like:
+            "---+---+---+---+---+---+---+---+---+---\n"
+            " 8 |   |   |   |   |   |   |   |   |   \n"
+            "---+---+---+---+---+---+---+---+---+---\n"
+            "   | X | X | Y |   |   |   |   | Y | 7 \n"
+            "---+---+---+---+---+---+---+---+---+---\n"
+            " 6 | X | X |   |   |   |   |   |   |   \n"
+            "---+---+---+---+---+---+---+---+---+---\n"
+            "   | X | X | X | X | Y |   |   | Y | 5 \n"
+            "---+---+---+---+---+---+---+---+---+---\n"
+        """
+
+        chart.shift_row_left(6, 2)
+
+        expected = ChartRow(6, [
+            Cell(" ", 2, 3), Cell(" ", 3, 4),
+            Cell(" ", 4, 5), Cell(" ", 5, 6),
+            Cell(" ", 6, 7), Cell(" ", 7, 8),
+        ])
+        actual = chart.get_row(6)
+
+        self.assertEqual(expected, actual)
+
+    def test_cannot_shift_left_past_chart_width(self):
+        pattern = Pattern([
+            ExpandedRow(5, [
+                Stitch("kfb"), Stitch("k"), Stitch("k"), Stitch("kfb")
+            ]),
+            ExpandedRow(6, [
+                Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
+            ]),
+            ExpandedRow(7, [
+                Stitch("kfb"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("kfb")
+            ]),
+            ExpandedRow(8, [
+                Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
+            ])
+        ])
+        chart = Chart(pattern)
+
+        with self.assertRaises(IndexError) as err:
+            chart.shift_row_left(8, 1)
+
+        self.assertEqual("Shift goes beyond chart bounds", str(err.exception))
+
+    def test_can_shift_specific_row_left(self):
+        pattern = Pattern([
+            ExpandedRow(1, [
+                Stitch("ssk"),
+                Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"),
+                Stitch("k2tog")
+            ]),
+            ExpandedRow(2, [
+                Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
+            ]),
+            ExpandedRow(3, [
+                Stitch("ssk"),
+                Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"),
+                Stitch("k2tog")
+            ]),
+            ExpandedRow(4, [
+                Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
+            ]),
+            ExpandedRow(5, [
+                Stitch("ssk"),
+                Stitch("k"), Stitch("k"),
+                Stitch("k2tog")
+            ])
+        ])
+        chart = Chart(pattern)
+
+        """ Chart should look like:
+            "---+---+---+---+---+---+---+---+---+---\n"
+            "   | X | X | X | X | / |   |   | \\ | 5 \n"
+            "---+---+---+---+---+---+---+---+---+---\n"
+            " 4 | X | X |   |   |   |   |   |   |   \n"
+            "---+---+---+---+---+---+---+---+---+---\n"
+            "   | X | X | / |   |   |   |   | \\ | 3 \n"
+            "---+---+---+---+---+---+---+---+---+---\n"
+            " 2 |   |   |   |   |   |   |   |   |   \n"
+            "---+---+---+---+---+---+---+---+---+---\n"
+            "   | / |   |   |   |   |   |   | \\ | 1 \n"
+            "---+---+---+---+---+---+---+---+---+---\n"
+        """
+
+        chart.shift_row_left(5, 3)
+        chart.shift_row_right(5, 1)
+        # +2
+        expected = ChartRow(5, [
+            Cell("\\", 2, 3), Cell(" ", 3, 4),
+            Cell(" ", 4, 5), Cell("/", 5, 6),
+        ])
+        actual = chart.get_row(5)
+
+        self.assertEqual(expected, actual)
+
+    def test_cannot_shift_right_past_chart_width(self):
+        pattern = Pattern([
+            ExpandedRow(1, [
+                Stitch("ssk"),
+                Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"),
+                Stitch("k2tog")
+            ]),
+            ExpandedRow(2, [
+                Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
+            ]),
+            ExpandedRow(3, [
+                Stitch("ssk"),
+                Stitch("k"), Stitch("k"), Stitch("k"), Stitch("k"),
+                Stitch("k2tog")
+            ]),
+            ExpandedRow(4, [
+                Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p"), Stitch("p")
+            ]),
+            ExpandedRow(5, [
+                Stitch("ssk"),
+                Stitch("k"), Stitch("k"),
+                Stitch("k2tog")
+            ])
+        ])
+        chart = Chart(pattern)
+
+        with self.assertRaises(IndexError) as err:
+            chart.shift_row_right(2, 1)
+
+        self.assertEqual("Shift goes beyond chart bounds", str(err.exception))
+
+    def test_can_pad_row_to_given_width_one_side(self):
+        pattern = Pattern([
+            ExpandedRow(1, [Stitch("p"), Stitch("p"), Stitch("p")]),
+            ExpandedRow(2, [Stitch("s2kp2")]),
+            ExpandedRow(3, [Stitch("p")]),
+        ])
+        chart = Chart(pattern)
 
         """ Chart should look like:
             "---+---+---+---+---\n"
-            " 2 |   |   |   |   \n"
-            "---+---+---+---+---\n"
-            "   |   | Y | X | 1 \n"
+            " 2 | X | X | ^ |   \n"
             "---+---+---+---+---\n"
         """
-        
-        expected_row_1 = [Cell(STITCH, " "), Cell(STITCH, "Y"), Cell(EMPTY)]
-        expected_row_2 = [Cell(STITCH, " "), Cell(STITCH, " "), Cell(STITCH, " ")]
-        actual_row_1 = chart.rows[0].cells
-        actual_row_2 = chart.rows[1].cells
+        expected = ChartRow(2, [
+            Cell("^", 0, 1),
+            Cell("X", 1, 2, CellType.EMPTY),
+            Cell("X", 2, 3, CellType.EMPTY)
+        ])
+        actual = chart.get_padded_row(2, chart.width)
 
-        self.assertEqual(expected_row_1, actual_row_1)
-        self.assertEqual(expected_row_2, actual_row_2)
+        self.assertEqual(expected, actual)
+
+    def test_can_pad_row_to_given_width_both_sides(self):
+        pattern = Pattern([
+            ExpandedRow(1, [Stitch("p"), Stitch("p"), Stitch("p")]),
+            ExpandedRow(2, [Stitch("s2kp2")]),
+            ExpandedRow(3, [Stitch("p")]),
+        ])
+        chart = Chart(pattern)
+        chart.shift_row_left(3, 1)
+
+        """ Chart should look like:
+            "---+---+---+---+---\n"
+            "   | X | - | X | 3 \n"
+            "---+---+---+---+---\n"
+        """
+        expected = ChartRow(3, [
+            Cell("X", 0, 1, CellType.EMPTY),
+            Cell("-", 1, 2),
+            Cell("X", 2, 3, CellType.EMPTY)
+        ])
+        actual = chart.get_padded_row(3, chart.width)
+
+        self.assertEqual(expected, actual)
+
+    def test_can_pad_row_of_equal_given_width_does_nothing(self):
+        pattern = Pattern([
+            ExpandedRow(1, [Stitch("p"), Stitch("p"), Stitch("p")]),
+            ExpandedRow(2, [Stitch("s2kp2")]),
+            ExpandedRow(3, [Stitch("p")]),
+        ])
+        chart = Chart(pattern)
+
+        """ Chart should look like:
+            "---+---+---+---+---\n"
+            "   | - | - | - | 1 \n"
+            "---+---+---+---+---\n"
+        """
+
+        expected = ChartRow(1, [
+            Cell("-", 0, 1),
+            Cell("-", 1, 2),
+            Cell("-", 2, 3)
+        ])
+        actual = chart.get_padded_row(1, chart.width)
+
+        self.assertEqual(expected, actual)
 
 if __name__ == "__main__":
     unittest.main()
