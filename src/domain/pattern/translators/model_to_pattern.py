@@ -1,6 +1,11 @@
 from src.domain.pattern.entities.model import Stitch, Repeat, Row, Part
 from src.domain.pattern.entities.pattern import ExpandedRow, Pattern
 
+class ModelToPatternTranslator:
+    """A wrapper around PatternBuilder to mimic the format of ASTtoModelTranslator"""
+    def translate_model(self, model:Part) -> Pattern:
+        return PatternBuilder(model).build_pattern()
+
 class PatternBuilder:
     """Creates a Pattern object from a given Part object"""
     def __init__(self, part:Part):

@@ -69,8 +69,9 @@ class ASCIIRender:
 
         return border + "\n"
     
-    def _pad_item(self, symbol:str) -> str:
-        item_len = self._get_max_chart_sym_len() + 2    # +2 for padding
+    def _pad_item(self, symbol:str, width:int) -> str:
+        """Pad item to given width"""
+        item_len = width + 2    # +2 for padding
         sym_len = len(symbol)
         to_pad = item_len - sym_len # always < 2
 
@@ -86,15 +87,16 @@ class ASCIIRender:
     def _build_row(self, row_num) -> str:
         """Create a row of symbols based on given chart row"""
         row = self._get_padded_row(row_num)
+        max_sym_len = self._get_max_chart_sym_len()
         symbols = [cell.symbol for cell in row.cells]
         symbols.reverse()   # reverse because symbols are originally right-to-left
         
         result = "|"
         for symbol in symbols:
-            padded = self._pad_item(symbol)
+            padded = self._pad_item(symbol, max_sym_len)
             result += f"{padded}|"
 
-        padded_row_num = self._pad_item(str(row_num))
+        padded_row_num = self._pad_item(str(row_num), max_sym_len)
         spacer = " " * len(padded_row_num)
 
         if row_num % 2 == 1:    #rs
@@ -104,7 +106,7 @@ class ASCIIRender:
 
         return result
     
-    def render_ascii_chart(self) -> str:
+    def render_chart(self) -> str:
         border = self._build_border()
 
         result = border
@@ -114,3 +116,74 @@ class ASCIIRender:
             result += border
         
         return result
+    
+    # def _get_longest_key_val(self) -> int:        
+    #     key = self.chart.key
+    #     values:list[str] = []
+    #     for k, v in key.items():
+    #         values.append(k)    # symbol
+    #         values.extend(list(v.values())) # rs and ws names
+    #     values.extend(["Symbol", "Meaning", "RS", "WS"])    # headers
+
+    #     max_len = 0
+    #     for value in values:
+    #         max_len = max(len(value), max_len)
+        
+    #     return max_len
+
+    def _get_column_width(self, contents:list[str]) -> int:
+        """Gets the width of the longest string in the chart contents"""
+        width = 0
+        for value in contents:
+            width = max(len(value), width)
+        
+        return width + 2
+
+    def render_key(self) -> str:
+        key = ""
+        
+        symbols = list(self.chart.key.keys())
+        symbol_names = symbols + ["SYMBOL"]
+        right_sides = [names["rs"] for _, names in self.chart.key.items()]
+        rs_names = right_sides + ["RS"]
+        wrong_sides = [names["ws"] for _, names in self.chart.key.items()]
+        ws_names = wrong_sides + ["WS"]
+
+        symbol_width = self._get_column_width(symbol_names)
+        rs_width = self._get_column_width(rs_names)
+        ws_width = self._get_column_width(ws_names)
+        
+        sym_pad_width = symbol_width - 2
+        rs_pad_width = rs_width - 2
+        ws_pad_width = ws_width - 2
+        meaning_width = rs_width + ws_width + 1     # for the | between them
+        meaning_pad_width = meaning_width - 2
+
+        header = ""
+        # Header row 1
+        symbol_border = f"+{'-' * symbol_width}"
+        meaning_border = f"+{'-' * meaning_width}"
+        header_border_1 = symbol_border + meaning_border + "+\n"
+
+        header_body_1 = "| SYMBOL |" + self._pad_item("MEANING", meaning_pad_width) + "|\n"
+        header = header_border_1 + header_body_1 + header_border_1
+
+        # Header row 2
+        header_body_2 = f"|{' ' * symbol_width}|"
+        header_body_2 += self._pad_item("RS", rs_pad_width) + "|" + self._pad_item("WS", ws_pad_width) + "|\n"
+        header_border_2 = symbol_border + f"+{'-' * rs_width}" + f"+{'-' * ws_width}" + "+\n"
+
+        header += header_body_2 + header_border_2
+
+        key = header
+
+        # Body
+        for i, symbol in enumerate(symbols):
+            padded_symbol = self._pad_item(symbol, sym_pad_width)
+            padded_rs = self._pad_item(right_sides[i], rs_pad_width)
+            padded_ws = self._pad_item(wrong_sides[i], ws_pad_width)
+
+            key += f"|{padded_symbol}|{padded_rs}|{padded_ws}|\n"
+            key += header_border_2
+
+        return key

@@ -126,7 +126,7 @@ class TestASCIIChart(unittest.TestCase):
         renderer = ASCIIRender(Chart(pattern))
 
         expected = " - "
-        actual = renderer._pad_item("-")
+        actual = renderer._pad_item("-", 1)
 
         self.assertEqual(expected, actual)
 
@@ -135,7 +135,7 @@ class TestASCIIChart(unittest.TestCase):
         renderer = ASCIIRender(Chart(pattern))
 
         expected = "  - "
-        actual = renderer._pad_item("-")
+        actual = renderer._pad_item("-", 2)
 
         self.assertEqual(expected, actual)
 
@@ -182,9 +182,57 @@ class TestASCIIChart(unittest.TestCase):
             "   | X | Y | - |   | 1 \n"
             "---+---+---+---+---+---\n"
         )
-        actual = renderer.render_ascii_chart()
+        actual = renderer.render_chart()
 
         self.assertEqual(expected, actual)
+
+
+class TestASCIIKey(unittest.TestCase):
+    def test_can_render_key_header(self):
+        self.maxDiff = None
+
+        pattern = Pattern([
+            ExpandedRow(1, [Stitch("k"), Stitch("p")]),
+            ExpandedRow(2, [Stitch("k"), Stitch("yo"), Stitch("k")]),
+        ])
+        renderer = ASCIIRender(Chart(pattern))
+
+        expected = (
+            "+--------+-----------------------+\n"
+            "| SYMBOL |        MEANING        |\n"
+            "+--------+-----------------------+\n"
+            "|        |     RS    |     WS    |\n"
+            "+--------+-----------+-----------+\n"
+        )
+        actual = renderer.render_key()
+
+        self.assertIn(expected, actual, f"expected was:\n{expected}\nactual was:\n{actual}\n")
+
+    def test_can_render_key(self):
+        self.maxDiff = None
+
+        pattern = Pattern([
+            ExpandedRow(1, [Stitch("k"), Stitch("p")]),
+            ExpandedRow(2, [Stitch("k"), Stitch("yo"), Stitch("k")]),
+        ])
+        renderer = ASCIIRender(Chart(pattern))
+
+        expected = (
+            "+--------+-----------------------+\n"
+            "| SYMBOL |        MEANING        |\n"
+            "+--------+-----------------------+\n"
+            "|        |     RS    |     WS    |\n"
+            "+--------+-----------+-----------+\n"
+            "|        |    knit   |    purl   |\n"
+            "+--------+-----------+-----------+\n"
+            "|    -   |    purl   |    knit   |\n"
+            "+--------+-----------+-----------+\n"
+            "|    O   | yarn over | yarn over |\n"
+            "+--------+-----------+-----------+\n"
+        )
+        actual = renderer.render_key()
+
+        self.assertEqual(expected, actual, f"expected was:\n{expected}\nactual was:\n{actual}\n")
 
 if __name__ == "__main__":
     unittest.main()
