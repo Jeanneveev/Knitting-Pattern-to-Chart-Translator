@@ -1,0 +1,1 @@
+from src.domain.chart.entities.chart import Chart

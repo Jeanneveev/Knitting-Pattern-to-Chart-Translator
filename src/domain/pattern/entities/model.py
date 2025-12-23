@@ -1,8 +1,9 @@
-"""Holds semantic logic and constant attribute value checking"""
+"""Holds semantic logic and constant attribute value checking for the entities resulting from the parser"""
 
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Union
+from src.domain.stitch_by_abbrev import STITCH_BY_ABBREV
 
 class StitchType(Enum):
     REGULAR = "reg"
@@ -35,27 +36,27 @@ class Stitch:
 
     @property
     def name(self) -> str:
-        return self.STITCH_BY_ABBREV[self.abbrev]["name"]
+        return STITCH_BY_ABBREV[self.abbrev]["name"]
     
     @property
     def type(self) -> StitchType:
-        return StitchType(self.STITCH_BY_ABBREV[self.abbrev]["type"])
+        return StitchType(STITCH_BY_ABBREV[self.abbrev]["type"])
     
     @property
     def stitches_consumed(self) -> int:
-        return self.STITCH_BY_ABBREV[self.abbrev]["stitches_consumed"]
+        return STITCH_BY_ABBREV[self.abbrev]["stitches_consumed"]
 
     @property
     def stitches_produced(self) -> int:
-        return self.STITCH_BY_ABBREV[self.abbrev]["stitches_produced"]
+        return STITCH_BY_ABBREV[self.abbrev]["stitches_produced"]
 
     @property
     def symbol_rs(self) -> str:
-        return self.STITCH_BY_ABBREV[self.abbrev]["rs"]
+        return STITCH_BY_ABBREV[self.abbrev]["rs"]
     
     @property
     def symbol_ws(self) -> str:
-        return self.STITCH_BY_ABBREV[self.abbrev]["ws"]
+        return STITCH_BY_ABBREV[self.abbrev]["ws"]
 
 class Repeat:
     def __init__(self, elements:List[Union[Stitch, "Repeat"]], num_times:int = None, stitches_after:int = None):

@@ -1,5 +1,5 @@
-from src.domain.ast.nodes import StitchNode, RepeatNode, RowNode, PartNode
-from src.domain.model.model import Stitch, Repeat, Row, Part
+from src.domain.parser.ast.nodes import StitchNode, RepeatNode, RowNode, PartNode
+from src.domain.pattern.entities.model import Stitch, Repeat, Row, Part
 
 class ASTtoModelTranslator:
     def _validate_stitch_node(self, node:StitchNode):

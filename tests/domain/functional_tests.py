@@ -2,7 +2,7 @@
 
 import unittest
 from src.domain.parser.parser import Parser
-from src.domain.model.model import Chart
+from src.domain.pattern.entities.model import Chart
 
 class TestBackend(unittest.TestCase):
     def test_can_translate_input_to_chart(self):
