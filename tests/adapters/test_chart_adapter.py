@@ -24,23 +24,30 @@ class TestChartAdapter(unittest.TestCase):
             ChartAdapter().render_chart(invalid_pattern)
         self.assertIn("Error occured when building chart:", str(err.exception))
 
-    # def test_can_generate_key_from_model(self):
-    #     model = Part(9, [
-    #         Row(1, [Repeat([Stitch("k"), Stitch("p"), Stitch("k")], num_times=3)])
-    #     ])
+    def test_can_generate_key_from_pattern(self):
+        pattern = Pattern([
+            ExpandedRow(1, [
+                Stitch("k"), Stitch("k"), Stitch("p"), Stitch("k"), Stitch("k")
+            ]),
+            ExpandedRow(2, [
+                Stitch("p"), Stitch("p"), Stitch("k"), Stitch("p"), Stitch("p")
+            ])
+        ])
 
-    #     expected = (
-    #         "+------+--------+-----------+-----------+\n"
-    #         "| Name | Abbrev | RS Symbol | WS Symbol |\n"
-    #         "+------+--------+-----------+-----------+\n"
-    #         "| Knit |    k   |           |     -     |\n"
-    #         "+------+--------+-----------+-----------+\n"
-    #         "| Purl |    p   |     -     |           |\n"
-    #         "+------+--------+-----------+-----------+\n"
-    #     )
-    #     actual = ChartAdapter().render_key(model)
+        expected = (
+            "+--------+-------------+\n"
+            "| SYMBOL |   MEANING   |\n"
+            "+--------+-------------+\n"
+            "|        |  RS  |  WS  |\n"
+            "+--------+------+------+\n"
+            "|        | knit | purl |\n"
+            "+--------+------+------+\n"
+            "|    -   | purl | knit |\n"
+            "+--------+------+------+\n"
+        )
+        actual = ChartAdapter().render_key(pattern)
 
-    #     self.assertEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
 if __name__ == "__main__":
     unittest.main()

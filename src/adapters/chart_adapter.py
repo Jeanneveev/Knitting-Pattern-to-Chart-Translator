@@ -20,3 +20,6 @@ class ChartAdapter(ChartPort):
         except Exception as err:
             raise AttributeError(f"Error occured when building chart:\n{repr(err)}") from err
         
+        renderer = ASCIIRender(chart)
+        return renderer.render_key()
+        
