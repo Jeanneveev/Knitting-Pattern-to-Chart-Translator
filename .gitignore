@@ -2,6 +2,7 @@
 build/
 design-notes/domain_model.md
 *.egg-info/
+logs/app.log
 
 **/__pycache__/
 **/.pytest_cache/
