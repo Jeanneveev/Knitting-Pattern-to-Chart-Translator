@@ -32,13 +32,13 @@
         "file": {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
-            "formatter": "simple",
+            "formatter": "detailed",
             "filename": "logs/app.log",
             "maxBytes": 10000,
             "backupCount": 3
         }
     },
     "loggers": {
-        "root": {"level": "DEBUG", "handlers": ["stderr", "file"]}
+        "root": {"level": "DEBUG", "handlers": ["file"]}
     }
 }

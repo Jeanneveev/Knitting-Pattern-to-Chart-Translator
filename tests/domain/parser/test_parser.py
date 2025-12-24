@@ -30,7 +30,6 @@ class TestParserHelpers(unittest.TestCase):
             parser.expect_value(["other"])
 
         self.assertEqual((
-            "PARSER ERROR DETECTED:\n"
             "Found the token: \"test\"\n"
             "But was expecting one of: [\"other\"]"
         ), str(err.exception))
@@ -61,7 +60,6 @@ class TestParserHelpers(unittest.TestCase):
             parser.expect_type([TokenType.COLON])
 
         self.assertEqual((
-            "PARSER ERROR DETECTED:\n"
             "Found token of type: \"WORD\"\n"
             "But was expecting one of: [\"COLON\"]"
         ), str(err.exception))
@@ -83,7 +81,6 @@ class TestParserHelpers(unittest.TestCase):
             parser.expect_series(["test", "test", "text"])
 
         self.assertEqual((
-            "PARSER ERROR DETECTED:\n"
             "Found the token: \"text\"\n"
             "But was expecting: \"test\""
         ), str(err.exception))
@@ -304,7 +301,6 @@ class TestParser(unittest.TestCase):
             parser.start()
 
         self.assertEqual((
-            "PARSER ERROR DETECTED:\n"
             "Cannot parse repeat without caston number"
         ), str(err.exception))
 

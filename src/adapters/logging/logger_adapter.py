@@ -23,8 +23,8 @@ class LoggerAdapter(LoggerPort):
     def warning(self, message:str):
         self.logger.warning(message)
 
-    def error(self, message:str):
-        self.logger.error(message)
+    def error(self, message:str, **kwargs):
+        self.logger.error(message, **kwargs, exc_info=True)
 
     def critical(self, message:str):
         self.logger.critical(message)

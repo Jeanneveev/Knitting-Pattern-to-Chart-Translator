@@ -1,7 +1,7 @@
 import click
 import textwrap
-from src.adapters.chart_adapter import ChartAdapter
-from src.adapters.parser_adapter import ParserAdapter
+from src.adapters.chart_adapter import ChartAdapter, ChartingError
+from src.adapters.parser_adapter import ParserAdapter, ParsingError
 from src.application.pattern_service import PatternService
 from src.infrastructure.cli.cli_input_adapter import CLIAdapter
 
@@ -58,8 +58,15 @@ def get_pattern():
     chart_adapter = ChartAdapter()
     service = PatternService(parser_adapter, chart_adapter)
     cli_adapter = CLIAdapter(pattern_service=service)
-    print("\nGreat! Your pattern as a chart looks like: ")
-    print(cli_adapter.run(full_pattern))
+    print()
+    try:
+        print("\nGreat! Your pattern as a chart looks like:\n", cli_adapter.run(full_pattern))
+    except ParsingError:
+        print(f"Error occurred during parsing. Please try again.")
+        get_pattern()
+    except ChartingError:
+        print(f"Error occurred during charting. Please try again.")
+        get_pattern()
 
 def main():
     raw_to_parse:str = click.prompt(textwrap.dedent(

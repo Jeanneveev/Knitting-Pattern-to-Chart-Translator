@@ -25,7 +25,7 @@ from src.domain.parser.lexer import Lexer, Token, TokenType
 class ParserError(Exception): 
     """Exception raised for errors during the parsing process"""
     def __init__(self, message): 
-        super().__init__(f'PARSER ERROR DETECTED:\n{message}') 
+        super().__init__(message)
 
 
 class Parser:

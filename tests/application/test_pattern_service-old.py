@@ -12,7 +12,7 @@ class TestIntegrationPatternService(unittest.TestCase):
         mock_chart_port = Mock(spec=ChartPort)
         mock_chart_port.render_chart.return_value = "[chart here]"
 
-        service = PatternService(parser_port=mock_parser_port, chart_port=mock_chart_port)
+        service = PatternService(parser_adapter=mock_parser_port, chart_adapter=mock_chart_port)
 
         pattern = "k2, p2"
         chart = service.generate_chart(pattern)
@@ -25,7 +25,7 @@ class TestUnitPatternService(unittest.TestCase):
         try:
             mock_parser_port = Mock(spec=ParserPort)
             mock_chart_port = Mock(spec=ChartPort)
-            service = PatternService(parser_port=mock_parser_port, chart_port=mock_chart_port)
+            service = PatternService(parser_adapter=mock_parser_port, chart_adapter=mock_chart_port)
         except Exception:
             self.fail("PatternService instance failed to be created")
 
@@ -39,7 +39,7 @@ class TestUnitPatternService(unittest.TestCase):
 
         mock_parser_port.parse.return_value = "[model here]"
 
-        service = PatternService(parser_port=mock_parser_port, chart_port=mock_chart_port)
+        service = PatternService(parser_adapter=mock_parser_port, chart_adapter=mock_chart_port)
         service.generate_chart("k2, p2")
 
         mock_parser_port.parse.assert_called_once_with("k2, p2")
@@ -52,7 +52,7 @@ class TestUnitPatternService(unittest.TestCase):
         mock_parser_port.parse.return_value = "[model here]"
         mock_chart_port = Mock(spec=ChartPort)
         mock_chart_port.render_chart.return_value = "[chart here]"
-        service = PatternService(parser_port=mock_parser_port, chart_port=mock_chart_port)
+        service = PatternService(parser_adapter=mock_parser_port, chart_adapter=mock_chart_port)
 
         pattern = "k, p, k"
         chart = service.generate_chart(pattern)

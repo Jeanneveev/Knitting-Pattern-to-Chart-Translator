@@ -66,7 +66,7 @@ class TestParserAdapter(unittest.TestCase):
 
         with self.assertRaises(ParserError) as err:
             ParserAdapter().parse(pattern)
-        self.assertEqual('PARSER ERROR DETECTED:\nFound the token: "invalid"\nBut was expecting one of: ["row"]', str(err.exception))
+        self.assertEqual('Found the token: "invalid"\nBut was expecting one of: ["row"]', str(err.exception))
 
 if __name__ == "__main__":
     unittest.main()

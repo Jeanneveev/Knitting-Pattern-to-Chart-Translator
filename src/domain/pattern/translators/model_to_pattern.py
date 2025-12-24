@@ -18,11 +18,16 @@ class PatternBuilder:
 
         self.part = part
 
+    def _validate_caston(self, caston:int, first_row:ExpandedRow):
+        if caston != first_row.start_st_count:
+            raise ValueError("First row does not contain as many stitches as caston")
+
     def build_pattern(self) -> Pattern:
         expanded_rows:list[ExpandedRow] = []
         for i, row in enumerate(self.part.rows):
             if i == 0:
                 expanded_row = self.build_expanded_row(row, self.part.caston)
+                self._validate_caston(self.part.caston, expanded_row)
                 expanded_rows.append(expanded_row)
                 continue
 
