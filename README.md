@@ -23,7 +23,9 @@ NOTE:
 - Stitches are entered using their abbreviations as a comma separated list like: k2, p2, k, p
 
 - Repeats can be entered using the following formats:
-    - "\*k2, p2\*; repeat from \* to \* 5 times" OR "(k2, p2) x 5" OR "\*k2, p2\*"
+    - "\*k2, p2\*; repeat from \* to \* 5 times"
+    - "(k2, p2) x 5"
+    - "\*k2, p2\*"
 
 Currently, only the following stitches are supported:
 - Knit (k)
